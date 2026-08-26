@@ -1,0 +1,14 @@
+{
+    "name": "yt_dl",
+    "version": "1.0.0",
+    "description": "Importar àudio des de YouTube amb yt-dlp",
+    "author": "JM",
+    "actions": [
+        {
+            "id": "import_youtube",
+            "label": "📥 Importar de YouTube",
+            "icon": "mdi-download",
+            "tooltip": "Descarregar àudio des de YouTube"
+        }
+    ]
+}

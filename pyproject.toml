@@ -1,0 +1,34 @@
+# Ruff configuration for JM-MusicAnalyzer
+# See: https://docs.astral.sh/ruff/
+
+[tool.ruff]
+exclude = [
+    "backups",
+    "dist",
+    "build",
+    "__pycache__",
+]
+
+[tool.ruff.lint]
+# Select rule sets
+select = ["E", "F", "W", "I", "N", "UP", "YTT", "BLE", "B", "A", "C4", "DTZ", "T10", "EM", "EXE", "ISC", "ICN", "G", "INP", "PTH", "PT", "Q", "RSE", "RET", "SLF", "SLOT", "SIM", "TID", "TCH", "INT", "ARG", "PIE", "PL", "TRY", "FLY", "PERF", "RUF"]
+ignore = [
+    "E501",  # Line too long (we handle manually)
+    "B008",  # Do not perform function calls in argument defaults
+    "C901",  # Too complex
+]
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.format]
+# Use double quotes for strings
+quote-style = "double"
+# Indent with 4 spaces
+indent-style = "space"
+line-ending = "auto"
+
+[tool.ruff.lint.isort]
+known-first-party = ["JM_MusicAnalizer", "ui", "core", "services", "workers", "config"]
+force-sort-within-sections = true
+force-wrap-aliases = true
+split-on-trailing-comma = true
