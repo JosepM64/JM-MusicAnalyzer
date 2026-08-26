@@ -70,6 +70,11 @@ mutagen, numpy, musicbrainzngs, sounddevice, soundfile, soxr (resampleig), pyaco
 - Per provar l'executable, llançar `dist\JM-MusicAnalyzer\JM-MusicAnalyzer.exe` directament
 
 ## Manteniment
+- **2026-08-24**: Repositori git inicialitzat — commit inicial `d69492f` (castellà, 119
+  fitxers, v4.51.0). `.gitignore` cobreix caches, build/, dist/, logs i
+  `config/api_keys.py`; s'ha afegit excepció `!JM-MusicAnalyzer.spec` per versionar
+  la config de build. Els binaris `tools/` (ffmpeg, fpcalc) estan versionats per fer
+  la build autocontinguda.
 - **2026-08-24**: Neteja de temporals i backups (~33 MB alliberats):
   - `build/` (32,1 MB, intermedi de PyInstaller — build.bat el regenera/esborra sol)
   - `__pycache__/` (15 carpetes, 0,9 MB) i `.ruff_cache/`
