@@ -56,9 +56,9 @@ mutagen, numpy, musicbrainzngs, sounddevice, soundfile, soxr (resampleig), pyaco
 - Taula `tracks` amb indexes sha256, genre, artist, filepath
 
 ## Últimes 3 versions
+- **v4.51.1**: Fix dev yt_dl — ffmpeg resolt des de `tools/` del projecte (no depèn de ~/.spotdl)
 - **v4.51.0**: Columna BPM a la graella (col 10) + filtre BPM a la toolbar (rangs de ball, inclou "Sense BPM")
 - **v4.50.0**: Fix resampleig (soxr substitueix scipy) + build −45 MB (filtres Qt al spec)
-- **v4.49.0**: YouTube import select-tot + navegació post-descàrrega a l'editor
 
  Versions anteriors: veure fitxer de versions o git log
 

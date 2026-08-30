@@ -2,6 +2,15 @@
 
 Tots els canvis significatius en aquest projecte es documenten en aquest fitxer.
 
+## [4.51.1] - 2026-08-26
+
+### Fix (dev): yt_dl resol el ffmpeg del projecte
+- `plugins/yt_dl/downloader.py`: en mode desenvolupament, `_get_ffmpeg()` busca primer
+  a `tools/ffmpeg.exe` del projecte (el mateix binari que es munta a l'EXE des de
+  v4.50.0) i deixa `~/.spotdl/` com a fallback de compatibilitat. Abans depenia de la
+  carpeta antiga de spotDL; si faltava, la cerca+descàrrega de YouTube fallaria en dev.
+- No afecta l'EXE (mode frozen ja apuntava a `_MEIPASS/tools/ffmpeg.exe`)
+
 ## [4.51.0] - 2026-08-24
 
 ### BPM a la graella + filtre BPM

@@ -19,8 +19,12 @@ def _get_ffmpeg() -> str | None:
             Path(sys._MEIPASS) / "tools" / "ffmpeg.exe",  # noqa: SLF001
         ]
     else:
+        project_tools = (
+            Path(__file__).resolve().parent.parent.parent / "tools" / "ffmpeg.exe"
+        )
         candidates = [
-            Path.home() / ".spotdl" / "ffmpeg.exe",
+            project_tools,  # canonical des de v4.50 (mateix binari que l'EXE)
+            Path.home() / ".spotdl" / "ffmpeg.exe",  # compat amb l'antic spotDL
         ]
     for c in candidates:
         if c.exists():
