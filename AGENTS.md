@@ -56,9 +56,9 @@ mutagen, numpy, musicbrainzngs, sounddevice, soundfile, soxr (resampleig), pyaco
 - Taula `tracks` amb indexes sha256, genre, artist, filepath
 
 ## Últimes 3 versions
+- **v4.52.1**: Fix — la carpeta de descàrrega es manté visible en acabar (els combos Rating/BPM ja no invalidaven `_current_folder`)
 - **v4.52.0**: Diàleg "Archivos nuevos" accionable (✏️ editar etiquetes + 🔍 MusicBrainz per fila) i la carpeta escanejada es manté visible en acabar
 - **v4.51.3**: Fix diàleg YouTube congelat (es tanca abans de la navegació post-descàrrega) + barra de progrés correcta + selecció desmarcada per defecte
-- **v4.51.2**: Fix YouTube — la descàrrega usa la URL exacta del resultat (abans re-cercava el títol i podia baixar un altre vídeo)
 
  Versions anteriors: veure fitxer de versions o git log
 

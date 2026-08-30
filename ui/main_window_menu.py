@@ -371,6 +371,7 @@ class MainWindowMenuMixin:
         if not folder or not os.path.isdir(folder):
             return
         self.settings.set("last_youtube_folder", folder)
+        self._last_scanned_paths = [folder]
         self._on_tree_folder_clicked(folder)
 
         was_sorting = self.file_list.isSortingEnabled()

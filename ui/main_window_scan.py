@@ -88,13 +88,13 @@ class MainWindowScanMixin:
         self._batch_timer.stop()
         self._process_pending_files()
         self.progress_bar.setVisible(False)
-        folder = self._current_folder
+        # Mantenir visible la carpeta que s'estava escanejant (p.ex. la de
+        # descàrrega de YouTube): _apply_filters canvia a la llista global.
+        folder = self._current_folder or (self._last_scanned_paths or [None])[0]
         self.statusBar().showMessage("Analisis completado", 3000)
         self._load_genre_combo()
         self._apply_filters()
         if folder:
-            # Mantenir visible la carpeta que s'estava escanejant (p.ex. la de
-            # descàrrega de YouTube): _apply_filters canvia a la llista global.
             tracks = self.db_manager.get_tracks_by_folder(folder)
             self.file_list.load_tracks_from_db(tracks)
         result = self.db_manager.auto_optimize_if_needed()

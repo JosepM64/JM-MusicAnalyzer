@@ -2,6 +2,17 @@
 
 Tots els canvis significatius en aquest projecte es documenten en aquest fitxer.
 
+## [4.52.1] - 2026-08-30
+
+### Fix: després de la descàrrega tornava a la llista anterior en lloc de la carpeta
+- **Causa arrel**: `_on_tree_folder_clicked` reiniciava els combos Rating i BPM
+  SENSE bloquejar senyals. Amb qualsevol filtre actiu (p.ex. "Sense BPM"),
+  `setCurrentIndex(0)` disparava `_apply_filters()` i posava `_current_folder = None`
+  → en acabar l'anàlisi, la carpeta de descàrrega no es restaurava.
+- Fix: els dos combos ara es reinicien amb `blockSignals`, i `_on_scan_finished_batch`
+  fa servir `_current_folder` o `_last_scanned_paths` (que `_on_youtube_downloaded`
+  també fixa) com a font de la carpeta a mostrar.
+
 ## [4.52.0] - 2026-08-30
 
 ### Diàleg "Archivos nuevos" accionable + carpeta de descàrrega visible
