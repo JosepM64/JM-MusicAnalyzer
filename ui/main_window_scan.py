@@ -88,9 +88,15 @@ class MainWindowScanMixin:
         self._batch_timer.stop()
         self._process_pending_files()
         self.progress_bar.setVisible(False)
+        folder = self._current_folder
         self.statusBar().showMessage("Analisis completado", 3000)
         self._load_genre_combo()
         self._apply_filters()
+        if folder:
+            # Mantenir visible la carpeta que s'estava escanejant (p.ex. la de
+            # descàrrega de YouTube): _apply_filters canvia a la llista global.
+            tracks = self.db_manager.get_tracks_by_folder(folder)
+            self.file_list.load_tracks_from_db(tracks)
         result = self.db_manager.auto_optimize_if_needed()
         if result:
             logger.info(f"Auto-optimizacion: {result}")
@@ -116,7 +122,7 @@ class MainWindowScanMixin:
 
         dlg = QDialog(self)
         dlg.setWindowTitle(f"Archivos nuevos: {count}")
-        dlg.resize(700, 400)
+        dlg.resize(800, 420)
         layout = QVBoxLayout(dlg)
 
         header = QLabel(
@@ -130,10 +136,11 @@ class MainWindowScanMixin:
             folders_str = ", ".join(folders)
             layout.addWidget(QLabel(f"\U0001f4c1 {folders_str}"))
 
-        table = QTableWidget(count, 4)
-        table.setHorizontalHeaderLabels(["Título", "Artista", "Género", "Carpeta"])
-        table.horizontalHeader().setStretchLastSection(True)
+        table = QTableWidget(count, 5)
+        table.setHorizontalHeaderLabels(["Título", "Artista", "Género", "Carpeta", ""])
+        table.horizontalHeader().setStretchLastSection(False)
         table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        table.setColumnWidth(4, 70)
         table.verticalHeader().setVisible(False)
         table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         table.setSelectionMode(QTableWidget.SelectionMode.NoSelection)
@@ -148,6 +155,26 @@ class MainWindowScanMixin:
             table.setItem(i, 2, QTableWidgetItem(f.get("genre") or "?"))
             table.setItem(i, 3, QTableWidgetItem(f.get("folder") or "?"))
 
+            row_widget = QWidget()
+            row_lay = QHBoxLayout(row_widget)
+            row_lay.setContentsMargins(2, 1, 2, 1)
+            row_lay.setSpacing(2)
+            btn_edit = QPushButton("✏️")
+            btn_edit.setFixedSize(30, 22)
+            btn_edit.setToolTip("Editar etiquetas básicas")
+            btn_edit.clicked.connect(
+                lambda checked=False, fp=f.get("filepath", ""), row=i: self._edit_new_file(fp, row, table)
+            )
+            btn_fp = QPushButton("🔍")
+            btn_fp.setFixedSize(30, 22)
+            btn_fp.setToolTip("Buscar en MusicBrainz (fingerprint)")
+            btn_fp.clicked.connect(
+                lambda checked=False, fp=f.get("filepath", ""), row=i: self._fingerprint_new_file(fp, row, table)
+            )
+            row_lay.addWidget(btn_edit)
+            row_lay.addWidget(btn_fp)
+            table.setCellWidget(i, 4, row_widget)
+
         layout.addWidget(table)
 
         btn_row = QHBoxLayout()
@@ -158,6 +185,65 @@ class MainWindowScanMixin:
         btn_row.addWidget(btn_ok)
         layout.addLayout(btn_row)
         dlg.exec()
+
+    def _edit_new_file(self, filepath, row, table):
+        """Obre l'editor d'etiquetes bàsiques per un fitxer acabat de baixar."""
+        if not filepath or not os.path.exists(filepath):
+            return
+        from services.db import get_db
+        from services.metadata_service import MetadataService
+        from ui.dialogs.track_edit_dialog import TrackEditDialog
+
+        try:
+            from core.reader.mp3_reader import MP3Reader
+
+            music_file = MP3Reader(filepath).read(use_cache=True, save_db=False)
+            meta = music_file.metadata if music_file and music_file.metadata else None
+        except Exception:
+            meta = None
+
+        dlg = TrackEditDialog(
+            (meta.artist if meta and meta.artist else "") or "",
+            (meta.title if meta and meta.title else "") or "",
+            (meta.genre if meta and meta.genre else "") or "",
+            (meta.rating if meta and meta.rating else 0) or 0,
+            get_db(),
+            self,
+        )
+        if dlg.exec() != 1:
+            return
+
+        MetadataService().save_from_panel(filepath, dlg.get_data())
+        self._refresh_dialog_row(table, row, filepath)
+        self._refresh_current_view()
+        self.statusBar().showMessage(
+            f"Metadatos guardados: {os.path.basename(filepath)}", 3000
+        )
+
+    def _fingerprint_new_file(self, filepath, row, table):
+        """Cerca MusicBrainz/AcoustID per un fitxer acabat de baixar."""
+        if not filepath or not os.path.exists(filepath):
+            return
+        self._on_fingerprint_requested(filepath)
+        self._refresh_dialog_row(table, row, filepath)
+
+    def _refresh_dialog_row(self, table, row, filepath):
+        try:
+            from core.reader.mp3_reader import MP3Reader
+
+            music_file = MP3Reader(filepath).read(use_cache=True, save_db=False)
+            meta = music_file.metadata if music_file and music_file.metadata else None
+        except Exception:
+            meta = None
+        title = meta.title if meta and meta.title else os.path.basename(filepath)
+        artist = meta.artist if meta and meta.artist else "?"
+        genre = meta.genre if meta and meta.genre else "?"
+        if table.item(row, 0):
+            table.item(row, 0).setText(title)
+        if table.item(row, 1):
+            table.item(row, 1).setText(artist)
+        if table.item(row, 2):
+            table.item(row, 2).setText(genre)
 
     def _on_quick_scan(self):
         from services.bookmarks_manager import BookmarksManager

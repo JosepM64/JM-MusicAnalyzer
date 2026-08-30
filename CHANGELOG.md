@@ -2,6 +2,17 @@
 
 Tots els canvis significatius en aquest projecte es documenten en aquest fitxer.
 
+## [4.52.0] - 2026-08-30
+
+### Diàleg "Archivos nuevos" accionable + carpeta de descàrrega visible
+- El diàleg que surt en detectar fitxers nous després d'una descàrrega (o escaneig)
+  ja NO és només informatiu: cada fila té **✏️ Editar etiquetes bàsiques**
+  (títol/artista/gènere/rating amb autocompletat de la BD) i **🔍 MusicBrainz**
+  (fingerprint AcoustID + cerca i aplicació de metadades completes).
+- **Fix**: en acabar l'anàlisi, la graella tornava a la llista global (500 pistes)
+  i la carpeta de descàrrega es perdia de vista ("el fitxer no està al directori").
+  Ara es manté visible la carpeta que s'estava escanejant, amb el fitxer nou a dalt.
+
 ## [4.51.3] - 2026-08-30
 
 ### Fix: diàleg de descàrrega congelat + selecció per defecte
