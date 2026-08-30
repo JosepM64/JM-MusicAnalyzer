@@ -152,7 +152,7 @@ class YouTubeImportDialog(QDialog):
 
         select_all_row = QHBoxLayout()
         self.chk_select_all = QCheckBox("Seleccionar / desseleccionar tot")
-        self.chk_select_all.setChecked(True)
+        self.chk_select_all.setChecked(False)
         self.chk_select_all.stateChanged.connect(self._on_select_all)
         select_all_row.addWidget(self.chk_select_all)
         select_all_row.addStretch()
@@ -239,7 +239,7 @@ class YouTubeImportDialog(QDialog):
         for i, r in enumerate(self.results):
             chk = QTableWidgetItem()
             chk.setFlags(Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled)
-            chk.setCheckState(Qt.CheckState.Checked)
+            chk.setCheckState(Qt.CheckState.Unchecked)
             self.table.setItem(i, 0, chk)
             self.table.setItem(i, 1, QTableWidgetItem(r["title"]))
             self.table.setItem(i, 2, QTableWidgetItem(r["duration"]))
@@ -383,13 +383,14 @@ class YouTubeImportDialog(QDialog):
                 urls.append(self.results[i]["url"])
 
         if not urls:
+            self.lbl_status.setText("Marca almenys un resultat per descarregar")
             return
 
         self._stop_preview_internal()
 
         self.btn_download.setEnabled(False)
         self.btn_cancel.setEnabled(True)
-        self.progress_bar.setRange(0, len(urls))
+        self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(0)
         self.progress_bar.setVisible(True)
 
@@ -419,6 +420,10 @@ class YouTubeImportDialog(QDialog):
 
         self.lbl_status.setText(f"✅ {len(downloaded)} fitxers descarregats")
         if downloaded:
+            # Tancar el diàleg ABANS de notificar la finestra principal: el handler
+            # de download_completed navega a la carpeta i en carrega el contingut
+            # (síncron), cosa que congelaria aquest diàleg si seguís obert.
+            self.accept()
             self.download_completed.emit(self.input_folder.text(), downloaded)
 
     def _on_error(self, msg):

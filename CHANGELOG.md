@@ -2,6 +2,18 @@
 
 Tots els canvis significatius en aquest projecte es documenten en aquest fitxer.
 
+## [4.51.3] - 2026-08-30
+
+### Fix: diàleg de descàrrega congelat + selecció per defecte
+- **Congelat**: el diàleg quedava "no respon" després de descarregar. El senyal
+  `download_completed` s'emetia amb el diàleg Obert (modal) i el seu handler
+  (navegació + càrrega de la carpeta des de la BD, síncron) bloquejava el mateix
+  fil. Ara el diàleg es tanca (accept) abans d'emetre el senyal.
+- **Barra de progrés**: el rang era 0..N però el worker enviava percentatges
+  (0..100) → la barra es quedava a 0 i semblava penjada. Ara rang 0..100.
+- **Selecció per defecte**: "Seleccionar / desseleccionar tot" i les files ara
+  surten DESMARCADES; si no marques res, el diàleg ho indica.
+
 ## [4.51.2] - 2026-08-26
 
 ### Fix: la descàrrega de YouTube baixava un vídeo diferent del previsualitzat
