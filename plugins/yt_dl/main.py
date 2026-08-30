@@ -376,9 +376,11 @@ class YouTubeImportDialog(QDialog):
         urls = []
         for i in range(self.table.rowCount()):
             chk = self.table.item(i, 0)
-            if chk.checkState() == Qt.CheckState.Checked:
-                title = self.table.item(i, 1).text()
-                urls.append(f"ytsearch1:{title}")
+            if chk.checkState() == Qt.CheckState.Checked and i < len(self.results):
+                # Usar la URL exacta del resultat marcat: la descàrrega ha de
+                # coincidir amb el que s'ha vist/previsualitzat (abans es feia
+                # ytsearch1:<titol>, que podia baixar un vídeo diferent)
+                urls.append(self.results[i]["url"])
 
         if not urls:
             return

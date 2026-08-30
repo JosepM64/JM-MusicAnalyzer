@@ -2,6 +2,17 @@
 
 Tots els canvis significatius en aquest projecte es documenten en aquest fitxer.
 
+## [4.51.2] - 2026-08-26
+
+### Fix: la descàrrega de YouTube baixava un vídeo diferent del previsualitzat
+- `plugins/yt_dl/main.py` (`_on_download`): abans es re-cercava el títol amb
+  `ytsearch1:<títol>` i es baixava el PRIMER resultat d'aquella altra cerca —
+  sovint un vídeo diferent (re-pujada, altra versió...). Reproduït: la cerca
+  "WWII Swing Era Music 1943 Radio Broadcast" previsualitza el resultat [0] però
+  baixava un vídeo de "The Swing Dolls".
+- Ara es descarrega la **URL exacta** del resultat marcat: descàrrega ≡
+  previsualització ≡ cerca. (Verificat que els IDs ja no discrepen)
+
 ## [4.51.1] - 2026-08-26
 
 ### Fix (dev): yt_dl resol el ffmpeg del projecte
