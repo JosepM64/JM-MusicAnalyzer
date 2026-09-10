@@ -16,6 +16,13 @@ ignore = [
     "E501",  # Line too long (we handle manually)
     "B008",  # Do not perform function calls in argument defaults
     "C901",  # Too complex
+    "G004",  # Logging f-string — project uses f-strings intentionally (331 hits)
+    "PTH",  # os.path vs pathlib — migration optional, 400+ hits (PTH100..PTH123)
+    "N802",  # Qt overrides must stay camelCase (paintEvent, setVolume)
+    "N803",  # Argument names (logicalIndex from Qt)
+    "N806",  # Variable in function (Qt)
+    "N815",  # mixedCase variable in class scope (Qt signals)
+    "PLC0415",  # import outside top-level — lazy imports for startup/circular
 ]
 fixable = ["ALL"]
 unfixable = []

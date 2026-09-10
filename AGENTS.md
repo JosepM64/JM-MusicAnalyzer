@@ -2,7 +2,7 @@
 
 ## Descripció
 Analitzador de música i eina DJ. Python 3.13 + PySide6.
-- **Versió**: 4.51.0 | **Data**: 2026-08-24 | **Build**: ~221 MB
+- **Versió**: 4.52.1 | **Data**: 2026-08-30 | **Build**: ~211 MB
 
 ## Estructura
 ```
@@ -42,8 +42,9 @@ Editar `JM_MusicAnalizer/__init__.py` → canviar `APP_VERSION`. La build genera
 
 ## Verificació
 ```bat
-python scripts/verify_automatica.py
-# 161/161 tests
+python verify_automatica.py
+# o: python scripts/verify_automatica.py  (shim)
+# 174/174 tests
 ```
 
 ## Dependències

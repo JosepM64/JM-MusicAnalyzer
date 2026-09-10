@@ -13,7 +13,25 @@ import os
 import sys
 
 PROJECT_NAME = "JM-MusicAnalyzer"
-PROJECT_VERSION = "4.43.0"
+
+# Versió llegida dinàmicament de JM_MusicAnalizer/__init__.py (single source of truth)
+def _get_project_version() -> str:
+    try:
+        import re
+
+        init_file = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "JM_MusicAnalizer", "__init__.py"
+        )
+        with open(init_file, encoding="utf-8") as f:
+            m = re.search(r'APP_VERSION\s*=\s*"([^"]+)"', f.read())
+            if m:
+                return m.group(1)
+    except Exception:
+        pass
+    return "unknown"
+
+
+PROJECT_VERSION = _get_project_version()
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = SCRIPT_DIR
