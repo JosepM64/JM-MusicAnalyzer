@@ -8,39 +8,151 @@ logger = logging.getLogger(__name__)
 
 
 class PerfTransitionMixin:
-    def _on_skip_now(self):
-        """Salta la canción preparada en el plato destino y carga la siguiente."""
-        if self._transition_in_progress:
-            return
-        if not self._playlist_tracks or self._playlist_index >= len(
+    def _get_next_playlist_path(self):
+        """Retorna el següent path de la playlist de forma robusta.
+
+        Prioritza _playlist_tracks/_playlist_index (automix) però fa fallback
+        a la fila superior de la taula visual quan l'índex és stale (mode manual).
+        Evita duplicats: mai retorna un path ja carregat a cap deck.
+        """
+        candidate = None
+        # 1) Intent via _playlist_tracks (automix)
+        if self._playlist_tracks and self._playlist_index < len(
             self._playlist_tracks
         ):
-            logger.info("[SKIP] No hay más canciones para saltar")
+            candidate = self._playlist_tracks[self._playlist_index]
+        # 2) Fallback a taula visual (mode manual o índex desfasat)
+        if not candidate or not os.path.exists(candidate):
+            try:
+                if self.playlist_widget.table.rowCount() > 0:
+                    it = self.playlist_widget.table.item(0, 4)
+                    if it:
+                        candidate = it.data(Qt.ItemDataRole.UserRole)
+            except Exception:
+                pass
+        # 3) Evitar duplicat: si candidate ja és a algun deck, provar següent
+        if candidate:
+            try:
+                cur_a = getattr(self.deck_a, "current_file", None)
+                cur_b = getattr(self.deck_b, "current_file", None)
+                if candidate in (cur_a, cur_b):
+                    logger.warning(
+                        f"[SKIP] Candidate duplicat detectat: {os.path.basename(candidate)} ja és a deck"
+                    )
+                    nxt_idx = self._playlist_index + 1
+                    if (
+                        self._playlist_tracks
+                        and nxt_idx < len(self._playlist_tracks)
+                        and self._playlist_tracks[nxt_idx] not in (cur_a, cur_b)
+                    ):
+                        candidate = self._playlist_tracks[nxt_idx]
+                    elif self.playlist_widget.table.rowCount() > 1:
+                        it2 = self.playlist_widget.table.item(1, 4)
+                        if it2:
+                            p2 = it2.data(Qt.ItemDataRole.UserRole)
+                            if p2 not in (cur_a, cur_b):
+                                candidate = p2
+                            else:
+                                candidate = None
+                        else:
+                            candidate = None
+                    else:
+                        candidate = None
+            except Exception:
+                pass
+        return candidate
+
+    def _on_skip_now(self):
+        """Salta la canción preparada en el plato destino y carga la siguiente."""
+        # Guard unificat (evita doble-dispar amb CROSSFADER) + debounce
+        if self._transition_in_progress or self._fade_timer.isActive():
+            logger.info("[SKIP] Ignorat: transició en curs")
             return
+        now = time.time()
+        if hasattr(self, "_last_skip_time") and now - self._last_skip_time < 0.4:
+            logger.info("[SKIP] Debounce: ignorat (massa ràpid)")
+            return
+        self._last_skip_time = now
 
         # Determinar el plato destino (el que no está sonando actualmente)
         if self.crossfader.value() < 0:
             to_deck_obj = self.deck_b
+            from_deck_obj = self.deck_a
         else:
             to_deck_obj = self.deck_a
+            from_deck_obj = self.deck_b
 
-        # La próxima pista a cargar es la que está en el índice actual de la playlist
-        next_path = self._playlist_tracks[self._playlist_index]
+        next_path = self._get_next_playlist_path()
+        if not next_path or not os.path.exists(next_path):
+            logger.info("[SKIP] No hay más canciones para saltar (cap candidate)")
+            return
+        # Guard duplicat: no carregar mateixa que ja sona
+        if next_path == getattr(
+            from_deck_obj, "current_file", None
+        ) or next_path == getattr(to_deck_obj, "current_file", None):
+            logger.warning(
+                f"[SKIP] Evitat duplicat: {os.path.basename(next_path)} ja carregat"
+            )
+            # Avançar índex i reintentar una vegada
+            if self._playlist_tracks and next_path in self._playlist_tracks:
+                try:
+                    idx = self._playlist_tracks.index(next_path)
+                    if idx + 1 < len(self._playlist_tracks):
+                        next_path = self._playlist_tracks[idx + 1]
+                    else:
+                        logger.info("[SKIP] No hi ha següent després de duplicat")
+                        return
+                except ValueError:
+                    pass
         logger.info(
-            f"[SKIP] Saltando pista preparada en deck {to_deck_obj.name}, cargando: {os.path.basename(next_path)}"
+            f"[SKIP] Saltando pista preparada en deck {to_deck_obj.name}, cargando: {os.path.basename(next_path)} (index={self._playlist_index})"
         )
 
         try:
-            to_deck_obj.load_file(next_path, False)
+            ok = to_deck_obj.load_file(next_path, False)
+            if not ok:
+                logger.error(f"[SKIP] load_file retornà False: {next_path}")
+                return
         except Exception as e:
             logger.error(f"[SKIP] Error cargando canción: {e}")
             return
 
-        # Eliminar esta pista de la lista visual y avanzar el índice
-        self.playlist_widget.remove_top_track()
-        self._playlist_index += 1
+        # Eliminar esta pista de la lista visual y avanzar el índice si coincideix
+        try:
+            # Si _playlist_tracks coincideix amb visual, avançar índex
+            if (
+                self._playlist_tracks
+                and self._playlist_index < len(self._playlist_tracks)
+                and self._playlist_tracks[self._playlist_index] == next_path
+            ):
+                self._playlist_index += 1
+            elif next_path in self._playlist_tracks:
+                # Sincronitzar índex amb posició real
+                try:
+                    self._playlist_index = (
+                        self._playlist_tracks.index(next_path) + 1
+                    )
+                except ValueError:
+                    pass
+            # Eliminar de la taula visual (top o fila que contingui el path)
+            removed = False
+            for r in range(self.playlist_widget.table.rowCount()):
+                it = self.playlist_widget.table.item(r, 4)
+                if it and it.data(Qt.ItemDataRole.UserRole) == next_path:
+                    self.playlist_widget.table.removeRow(r)
+                    self.playlist_widget._refresh_all_widgets()
+                    removed = True
+                    break
+            if not removed and self.playlist_widget.table.rowCount() > 0:
+                self.playlist_widget.remove_top_track()
+        except Exception as e:
+            logger.error(f"[SKIP] Error actualitzant playlist: {e}")
+            self.playlist_widget.remove_top_track()
+            self._playlist_index += 1
 
-        if self._playlist_index >= len(self._playlist_tracks):
+        if self._playlist_tracks and self._playlist_index >= len(
+            self._playlist_tracks
+        ):
             logger.info("[SKIP] No quedan más canciones después de saltar")
 
     def _on_loop_toggle(self, checked):
@@ -163,9 +275,17 @@ class PerfTransitionMixin:
     def _on_skip_and_mix(self):
         """SKIP Y MEZCLAR SIGUIENTE YA - Fuerza transición.
         Si el deck destino ya tiene una canción (cargada manualmente desde Llista 2),
-        la respeta y solo hace el crossfade. Si está vacío, carga la siguiente de la playlist."""
-        if self._fade_timer.isActive():
+        la respeta y solo hace el crossfade. Si está vacío, carga la siguiente de la playlist.
+        Fix doble-reproducció: unifica guards, debounce i evita carregar duplicats."""
+        # Guard unificat + debounce (coherent amb _on_skip_now)
+        if self._fade_timer.isActive() or self._transition_in_progress:
+            logger.info("[SKIP+MEZCLAR] Ignorat: transició en curs")
             return
+        now = time.time()
+        if hasattr(self, "_last_crossfader_time") and now - self._last_crossfader_time < 0.5:
+            logger.info("[SKIP+MEZCLAR] Debounce: ignorat")
+            return
+        self._last_crossfader_time = now
 
         from_deck = "A" if self.crossfader.value() < 0 else "B"
         to_deck = "B" if from_deck == "A" else "A"
@@ -177,35 +297,94 @@ class PerfTransitionMixin:
         current_dest = (
             to_deck_obj.current_file if hasattr(to_deck_obj, "current_file") else None
         )
+        current_from = (
+            from_deck_obj.current_file
+            if hasattr(from_deck_obj, "current_file")
+            else None
+        )
 
         if not current_dest:
-            # Deck destí buit: intentar carregar la següent de la playlist
-            if not self._playlist_tracks or self._playlist_index >= len(
-                self._playlist_tracks
+            # Deck destí buit: intentar carregar la següent
+            expected_path = None
+            # Prioritzar _playlist_tracks si automix actiu i índex vàlid
+            if (
+                self._automix_active
+                and self._playlist_tracks
+                and 0 <= self._playlist_index - 1 < len(self._playlist_tracks)
             ):
-                logger.warning(
-                    "[SKIP+MEZCLAR] No hay canción en deck destino ni en playlist"
+                expected_path = self._playlist_tracks[self._playlist_index - 1]
+                # Evitar duplicat amb from_deck
+                if expected_path == current_from:
+                    logger.warning(
+                        f"[SKIP+MEZCLAR] Evitat duplicat: expected == from ({os.path.basename(expected_path)})"
+                    )
+                    if self._playlist_index < len(self._playlist_tracks):
+                        expected_path = self._playlist_tracks[self._playlist_index]
+                    else:
+                        expected_path = None
+            from_fallback = False
+            # Fallback a següent disponible (visual) si no hi ha expected o no és automix
+            if not expected_path:
+                expected_path = self._get_next_playlist_path()
+                from_fallback = True
+                if not expected_path:
+                    logger.warning(
+                        "[SKIP+MEZCLAR] No hay canción en deck destino ni en playlist (cap candidate)"
+                    )
+                    return
+                logger.info(
+                    f"[SKIP+MEZCLAR] Cargando (fallback) en deck {to_deck}: {os.path.basename(expected_path)}"
+                )
+            else:
+                logger.info(
+                    f"[SKIP+MEZCLAR] Cargando en deck {to_deck}: {os.path.basename(expected_path)} (index={self._playlist_index - 1})"
+                )
+            if not expected_path or not os.path.exists(expected_path):
+                logger.warning(f"[SKIP+MEZCLAR] Path no existe: {expected_path}")
+                return
+            # Darrer guard duplicat
+            if expected_path == current_from:
+                logger.error(
+                    f"[SKIP+MEZCLAR] Abort: intent de carregar mateixa que sona: {os.path.basename(expected_path)}"
                 )
                 return
-            expected_idx = self._playlist_index - 1
-            if expected_idx < 0 or expected_idx >= len(self._playlist_tracks):
-                logger.warning("[SKIP+MEZCLAR] \u00cdndice de playlist fuera de rango")
-                return
-            expected_path = self._playlist_tracks[expected_idx]
-            logger.info(
-                f"[SKIP+MEZCLAR] Cargando en deck {to_deck}: {os.path.basename(expected_path)}"
-            )
             try:
-                to_deck_obj.load_file(expected_path, False)
+                ok = to_deck_obj.load_file(expected_path, False)
+                if not ok:
+                    logger.error(f"[SKIP+MEZCLAR] load_file False: {expected_path}")
+                    return
+                # Sincronitzar índex i visual si hem carregat el següent de la cua (no el preparat)
+                # Cas fallback o duplicat evitat: expected == _playlist_tracks[_playlist_index]
+                if expected_path in self._playlist_tracks:
+                    try:
+                        idx = self._playlist_tracks.index(expected_path)
+                        # Si és el següent pendent (index actual), avançar
+                        if idx == self._playlist_index:
+                            self._playlist_index += 1
+                            for r in range(self.playlist_widget.table.rowCount()):
+                                itx = self.playlist_widget.table.item(r, 4)
+                                if itx and itx.data(Qt.ItemDataRole.UserRole) == expected_path:
+                                    self.playlist_widget.table.removeRow(r)
+                                    self.playlist_widget._refresh_all_widgets()
+                                    break
+                            logger.info(f"[SKIP+MEZCLAR] Avançat índex a {self._playlist_index} (carregat següent)")
+                    except Exception:
+                        pass
             except Exception as e:
                 logger.error(f"[SKIP+MEZCLAR] Error cargando: {e}")
                 return
         else:
+            # Dest ja té càrrega — evitar transició si és mateixa que from (duplicat)
+            if current_dest == current_from:
+                logger.error(
+                    f"[SKIP+MEZCLAR] Abort: dest == from ({os.path.basename(current_dest)}) duplicat"
+                )
+                return
             logger.info(
-                f"[SKIP+MEZCLAR] Deck {to_deck} ya tiene: {os.path.basename(current_dest)} - respectant c\u00e0rrega manual"
+                f"[SKIP+MEZCLAR] Deck {to_deck} ya tiene: {os.path.basename(current_dest)} - respectant càrrega manual"
             )
 
-        # Iniciar transici\u00f3 (el deck dest\u00ed ja est\u00e0 preparat)
+        # Iniciar transició (el deck destí ja està preparat) — disable gestionat a _start_transition
         self._start_transition(from_deck, skip_load=True)
 
     def _on_start_automix(self):
@@ -469,6 +648,16 @@ class PerfTransitionMixin:
         logger.info(
             f"[Automix] _start_transition desde {from_deck}, playlist_index={self._playlist_index}, skip_load={skip_load}"
         )
+        # Feedback: deshabilitar SKIP/CROSSFADER durant el fade
+        try:
+            if hasattr(self, "btn_skip"):
+                self.btn_skip.setEnabled(False)
+            if hasattr(self, "btn_crossfader_mixer"):
+                self.btn_crossfader_mixer.setEnabled(False)
+            if hasattr(self, "btn_next_now"):
+                self.btn_next_now.setEnabled(False)
+        except Exception:
+            pass
 
         to_deck = "B" if from_deck == "A" else "A"
         to_deck_obj = self.deck_b if from_deck == "A" else self.deck_a
@@ -495,20 +684,39 @@ class PerfTransitionMixin:
                 expected_idx = self._playlist_index - 1
                 if expected_idx >= 0 and expected_idx < len(self._playlist_tracks):
                     expected_path = self._playlist_tracks[expected_idx]
+                    # Guard duplicat: no carregar mateixa que from_deck
+                    from_file = getattr(from_deck_obj, "current_file", None)
+                    if expected_path == from_file:
+                        logger.warning(
+                            f"[Automix] Evitat duplicat: expected == from ({os.path.basename(expected_path)})"
+                        )
+                        if self._playlist_index < len(self._playlist_tracks):
+                            expected_path = self._playlist_tracks[self._playlist_index]
+                            expected_idx = self._playlist_index
+                        else:
+                            logger.warning("[Automix] No hi ha alternativa a duplicat")
+                            self._transition_in_progress = False
+                            return
                     try:
-                        to_deck_obj.load_file(expected_path, False)
+                        ok = to_deck_obj.load_file(expected_path, False)
+                        if not ok:
+                            logger.error(f"[Automix] load_file False: {expected_path}")
+                            self._transition_in_progress = False
+                            return
                         logger.info(
-                            f"[Automix] Cargada en {to_deck} (pista esperada): {os.path.basename(expected_path)}"
+                            f"[Automix] Cargada en {to_deck} (pista esperada): {os.path.basename(expected_path)} (idx={expected_idx})"
                         )
                     except Exception as e:
                         logger.error(
                             f"[Automix] Error cargando pista esperada en deck destino: {e}"
                         )
+                        self._transition_in_progress = False
                         return
                 else:
                     logger.warning(
                         f"[Automix] No se puede cargar deck destino, índice fuera de rango: {expected_idx}"
                     )
+                    self._transition_in_progress = False
                     return
 
             # Iniciar reproducción en el deck destino si no está sonando
@@ -636,11 +844,41 @@ class PerfTransitionMixin:
                 ):
                     try:
                         next_path = self._playlist_tracks[self._playlist_index]
-                        from_deck_obj.load_file(next_path, False)
-                        self.playlist_widget.remove_top_track()
+                        # Evitar duplicat: si next_path ja és al deck destí, saltar
+                        cur_a = getattr(self.deck_a, "current_file", None)
+                        cur_b = getattr(self.deck_b, "current_file", None)
+                        if next_path in (cur_a, cur_b):
+                            logger.warning(
+                                f"[Automix] Evitat duplicat en deck liberado: {os.path.basename(next_path)} ja carregat"
+                            )
+                            # Intentar següent disponible
+                            nxt = self._playlist_index + 1
+                            while nxt < len(self._playlist_tracks) and self._playlist_tracks[nxt] in (cur_a, cur_b):
+                                nxt += 1
+                            if nxt < len(self._playlist_tracks):
+                                next_path = self._playlist_tracks[nxt]
+                                self._playlist_index = nxt
+                            else:
+                                logger.info("[Automix] No hi ha següent no duplicat")
+                                raise IndexError("no next non-duplicate")
+                        ok = from_deck_obj.load_file(next_path, False)
+                        if not ok:
+                            logger.error(f"[Automix] load_file False per {next_path}")
+                            raise RuntimeError("load_file failed")
+                        # Eliminar de la taula visual la fila corresponent
+                        removed = False
+                        for r in range(self.playlist_widget.table.rowCount()):
+                            it2 = self.playlist_widget.table.item(r, 4)
+                            if it2 and it2.data(Qt.ItemDataRole.UserRole) == next_path:
+                                self.playlist_widget.table.removeRow(r)
+                                self.playlist_widget._refresh_all_widgets()
+                                removed = True
+                                break
+                        if not removed:
+                            self.playlist_widget.remove_top_track()
                         self._playlist_index += 1
                         logger.info(
-                            f"[Automix] Cargada siguiente en deck liberado {from_deck_obj.name}: {os.path.basename(next_path)}"
+                            f"[Automix] Cargada siguiente en deck liberado {from_deck_obj.name}: {os.path.basename(next_path)} (index={self._playlist_index})"
                         )
                     except Exception as e:
                         logger.error(
@@ -659,4 +897,14 @@ class PerfTransitionMixin:
 
             self._manual_crossfade = False
             self._transition_in_progress = False
+            # Re-habilitar botons
+            try:
+                if hasattr(self, "btn_skip"):
+                    self.btn_skip.setEnabled(True)
+                if hasattr(self, "btn_crossfader_mixer"):
+                    self.btn_crossfader_mixer.setEnabled(True)
+                if hasattr(self, "btn_next_now"):
+                    self.btn_next_now.setEnabled(True)
+            except Exception:
+                pass
             logger.info("[Automix] Transición completada")
