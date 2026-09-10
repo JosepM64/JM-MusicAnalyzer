@@ -2,6 +2,11 @@
 
 Tots els canvis significatius en aquest projecte es documenten en aquest fitxer.
 
+## [4.53.1] - 2026-09-10
+
+### DJ: treure CROSSFADER duplicat
+- **UI**: eliminat `btn_next_now` de la toolbar (`perf_window_ui.py:102`); queda únic `btn_crossfader_mixer` a `trans_row` → `SKIP | CROSSFADER | LOOP` (vista normal). Neteja `performance_window.py:166` i `perf_window_ui.py:830` (toggle visible).
+
 ## [4.53.0] - 2026-09-10
 
 ### DJ: CROSSFADER al costat de SKIP/LOOP + fix doble reproducció

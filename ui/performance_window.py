@@ -164,9 +164,6 @@ class PerformanceWindow(
 
         # Mode compacte (Space per amagar/mostrar plats)
         self._compact_mode = False
-        # CROSSFADER: en mode NORMAL va al mixer (SKIP|CROSSFADER|LOOP), en COMPACT a la toolbar
-        if hasattr(self, "btn_next_now"):
-            self.btn_next_now.setVisible(self._compact_mode)
         self._compact_sc = QShortcut(QKeySequence(Qt.Key.Key_Space), self)
         self._compact_sc.activated.connect(self._toggle_compact_mode)
 
