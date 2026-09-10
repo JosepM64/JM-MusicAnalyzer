@@ -2,7 +2,7 @@
 
 ## Descripció
 Analitzador de música i eina DJ. Python 3.13 + PySide6.
-- **Versió**: 4.52.1 | **Data**: 2026-08-30 | **Build**: ~211 MB
+- **Versió**: 4.53.0 | **Data**: 2026-09-10 | **Build**: ~211 MB
 
 ## Estructura
 ```
@@ -44,7 +44,7 @@ Editar `JM_MusicAnalizer/__init__.py` → canviar `APP_VERSION`. La build genera
 ```bat
 python verify_automatica.py
 # o: python scripts/verify_automatica.py  (shim)
-# 174/174 tests
+# 175/175 tests
 ```
 
 ## Dependències
@@ -57,9 +57,9 @@ mutagen, numpy, musicbrainzngs, sounddevice, soundfile, soxr (resampleig), pyaco
 - Taula `tracks` amb indexes sha256, genre, artist, filepath
 
 ## Últimes 3 versions
+- **v4.53.0**: DJ — CROSSFADER al costat de SKIP/LOOP (vista normal) + fix doble reproducció SKIP/CROSSFADER (guards, debounce, anti-duplicat)
 - **v4.52.1**: Fix — la carpeta de descàrrega es manté visible en acabar (els combos Rating/BPM ja no invalidaven `_current_folder`)
 - **v4.52.0**: Diàleg "Archivos nuevos" accionable (✏️ editar etiquetes + 🔍 MusicBrainz per fila) i la carpeta escanejada es manté visible en acabar
-- **v4.51.3**: Fix diàleg YouTube congelat (es tanca abans de la navegació post-descàrrega) + barra de progrés correcta + selecció desmarcada per defecte
 
  Versions anteriors: veure fitxer de versions o git log
 

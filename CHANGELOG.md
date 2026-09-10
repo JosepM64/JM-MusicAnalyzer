@@ -2,6 +2,12 @@
 
 Tots els canvis significatius en aquest projecte es documenten en aquest fitxer.
 
+## [4.53.0] - 2026-09-10
+
+### DJ: CROSSFADER al costat de SKIP/LOOP + fix doble reproducció
+- **UI**: `perf_window_ui.py` — `btn_crossfader_mixer` (115×28, #8a2be2) afegit a `trans_row` → `SKIP | CROSSFADER | LOOP`. `btn_next_now` (toolbar) només visible en COMPACT, `btn_crossfader_mixer` només en NORMAL (evita duplicat) via `performance_window.py` i `perf_window_ui.py:_toggle_compact_mode`.
+- **Fix doble so**: `perf_window_transition.py` — `_get_next_playlist_path()` amb fallback visual, guards unificats (`_transition||_fade`) + debounce 0.4/0.5s, evita `expected==from` i `dest==from`, sync `playlist_index` i `removeRow` exacte. `_start_transition` i `_handle_transition_logic` bloquegen botons durant fade i eviten càrrega duplicada al deck alliberat.
+
 ## [4.52.1] - 2026-08-30
 
 ### Fix: després de la descàrrega tornava a la llista anterior en lloc de la carpeta
