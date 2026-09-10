@@ -591,6 +591,22 @@ class PerfUIMixin:
         self.btn_skip.clicked.connect(self._on_skip_now)
         trans_row.addWidget(self.btn_skip)
 
+        # Botón CROSSFADER (vista normal — mateixa acció que toolbar)
+        # Demanat: a la vista normal, al costat de SKIP i LOOP
+        self.btn_crossfader_mixer = QPushButton("\u23ed\ufe0f CROSSFADER")
+        self.btn_crossfader_mixer.setFixedSize(115, 28)
+        self.btn_crossfader_mixer.setStyleSheet("""
+            QPushButton {
+                background-color: #8a2be2; color: white; font-weight: bold; font-size: 11px;
+                border-radius: 3px;
+            }
+            QPushButton:hover { background-color: #9b4de0; }
+            QPushButton:pressed { background-color: #7a1bd1; }
+        """)
+        self.btn_crossfader_mixer.setToolTip("Forzar transición inmediata (crossfade)")
+        self.btn_crossfader_mixer.clicked.connect(self._on_skip_and_mix)
+        trans_row.addWidget(self.btn_crossfader_mixer)
+
         # Botón LOOP (extender final de canción)
         self.btn_loop = QPushButton("\U0001f501 LOOP")
         self.btn_loop.setCheckable(True)
@@ -820,6 +836,9 @@ class PerfUIMixin:
         self.decks_container.setVisible(not self._compact_mode)
         self.compact_bar.setVisible(self._compact_mode)
         self.btn_compact_mode.setChecked(self._compact_mode)
+        # CROSSFADER: evita duplicat — toolbar només en COMPACT, mixer només en NORMAL
+        if hasattr(self, "btn_next_now"):
+            self.btn_next_now.setVisible(self._compact_mode)
 
         if self._compact_mode:
             self._update_compact_bar()
