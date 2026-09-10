@@ -2,6 +2,11 @@
 
 Tots els canvis significatius en aquest projecte es documenten en aquest fitxer.
 
+## [4.53.2] - 2026-09-10
+
+### DJ: restaura CROSSFADER a COMPACT
+- **UI**: restaura `btn_next_now` a toolbar només visible en COMPACT (`perf_window_ui.py:102` + `performance_window.py:167` + `perf_window_ui.py:840`); `btn_crossfader_mixer` només en NORMAL → 1 CROSSFADER per vista, sense duplicat (4.53.0).
+
 ## [4.53.1] - 2026-09-10
 
 ### DJ: treure CROSSFADER duplicat

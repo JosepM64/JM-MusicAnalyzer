@@ -99,6 +99,14 @@ class PerfUIMixin:
         self.toolbar.addWidget(self.btn_toggle_list)
         self.toolbar.addSeparator()
 
+        # BOTÓN CROSSFADER — només visible en COMPACT (a NORMAL és al mixer)
+        self.btn_next_now = QPushButton("\u23ed\ufe0f CROSSFADER")
+        self.btn_next_now.setStyleSheet(
+            "background-color: #8a2be2; color: white; padding: 0 15px;"
+        )
+        self.btn_next_now.clicked.connect(self._on_skip_and_mix)
+        self.toolbar.addWidget(self.btn_next_now)
+
         # Botón modo compacto
         self.btn_compact_mode = QPushButton("\U0001f5d4 COMPACT")
         self.btn_compact_mode.setCheckable(True)
@@ -828,6 +836,9 @@ class PerfUIMixin:
         self.decks_container.setVisible(not self._compact_mode)
         self.compact_bar.setVisible(self._compact_mode)
         self.btn_compact_mode.setChecked(self._compact_mode)
+        # CROSSFADER: toolbar només en COMPACT, mixer en NORMAL
+        if hasattr(self, "btn_next_now"):
+            self.btn_next_now.setVisible(self._compact_mode)
 
         if self._compact_mode:
             self._update_compact_bar()

@@ -2,7 +2,7 @@
 
 ## Descripció
 Analitzador de música i eina DJ. Python 3.13 + PySide6.
-- **Versió**: 4.53.1 | **Data**: 2026-09-10 | **Build**: ~211 MB
+- **Versió**: 4.53.2 | **Data**: 2026-09-10 | **Build**: ~211 MB
 
 ## Estructura
 ```
@@ -57,9 +57,9 @@ mutagen, numpy, musicbrainzngs, sounddevice, soundfile, soxr (resampleig), pyaco
 - Taula `tracks` amb indexes sha256, genre, artist, filepath
 
 ## Últimes 3 versions
-- **v4.53.1**: DJ — tret CROSSFADER duplicat (queda només `SKIP | CROSSFADER | LOOP` a mixer)
-- **v4.53.0**: DJ — CROSSFADER al costat de SKIP/LOOP + fix doble reproducció (guards, debounce, anti-duplicat)
-- **v4.52.1**: Fix — la carpeta de descàrrega es manté visible en acabar
+- **v4.53.2**: DJ — restaura CROSSFADER a COMPACT (toolbar) + mixer en NORMAL (1 per vista, sense duplicat)
+- **v4.53.1**: DJ — tret CROSSFADER duplicat (només mixer)
+- **v4.53.0**: DJ — CROSSFADER al costat de SKIP/LOOP + fix doble reproducció
 
  Versions anteriors: veure fitxer de versions o git log
 
