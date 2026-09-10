@@ -296,6 +296,12 @@ class PlaylistWidget(
         self.btn_cleanup.clicked.connect(self.cleanup_missing_files)
         cfg.addWidget(self.btn_cleanup)
 
+        self.btn_dupes = QPushButton("🔍 Duplicats")
+        self.btn_dupes.setStyleSheet("font-size: 10px; color: #bb88ff;")
+        self.btn_dupes.setToolTip("Netegjar cançons duplicades a la llista carregada")
+        self.btn_dupes.clicked.connect(self.cleanup_duplicates_in_playlist)
+        cfg.addWidget(self.btn_dupes)
+
         cfg.addStretch()
         cfg.addWidget(QLabel("Vol CUE:"))
         self.slider_cue_vol = QSlider(Qt.Orientation.Horizontal)

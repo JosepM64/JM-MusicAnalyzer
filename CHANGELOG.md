@@ -2,6 +2,12 @@
 
 Tots els canvis significatius en aquest projecte es documenten en aquest fitxer.
 
+## [4.54.0] - 2026-09-10
+
+### DJ: botó Duplicats a la playlist
+- **UI**: `playlist_widget.py:293` nou `🔍 Duplicats` al costat de `🧹 Limpiar` + `playlist_filters.py:297` `cleanup_duplicates_in_playlist()` (filepath/SHA256/títol+artista, manté primera, elimina resta de la TAULA, no disc). Disponible a DJ master i Manager.
+- **Clarificació**: `🧹 Limpiar` només treu mortes (`!exists`/`read` fail), `🗑 Reset Plays` només plays; duplicats ara té botó propi.
+
 ## [4.53.3] - 2026-09-10
 
 ### DJ: elimina CROSSFADER duplicat (imatge)

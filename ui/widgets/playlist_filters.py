@@ -295,3 +295,163 @@ class PlaylistFilterMixin:
         btn.clicked.connect(dlg.accept)
         layout.addWidget(btn)
         dlg.exec()
+
+    def cleanup_duplicates_in_playlist(self):
+        """Neteja duplicats a la llista carregada (taula actual).
+
+        Detecta per 3 criteris (selector):
+        - Mateix filepath normalitzat (per defecte, més segur per M3U)
+        - Mateix SHA256 (si disponible a BD)
+        - Mateix títol+artista
+        Manté la primera aparició, elimina la resta (conserva ordre).
+        Només afecta la TAULA (model en memòria), no el disc ni la BD.
+        """
+        from PySide6.QtWidgets import QComboBox
+
+        if self.table.rowCount() <= 1:
+            QMessageBox.information(
+                self, "Duplicats", "No hi ha prou pistes per buscar duplicats."
+            )
+            return
+
+        # Diàleg selector de mode
+        dlg_mode = QDialog(self)
+        dlg_mode.setWindowTitle("🔍 Netejar Duplicats")
+        dlg_mode.setMinimumWidth(420)
+        dlg_mode.setStyleSheet(DARK_DIALOG_STYLE)
+        v = QVBoxLayout(dlg_mode)
+        v.addWidget(QLabel("<b>Buscar duplicats a la llista carregada</b>"))
+        v.addWidget(
+            QLabel("Es mantindrà la primera aparició, s'eliminaran les següents.\nNomés afecta la llista, no el disc.")
+        )
+        cb = QComboBox()
+        cb.addItems(
+            [
+                "Mateix arxiu (filepath)",
+                "Contingut idèntic (SHA256)",
+                "Mateix títol + artista",
+            ]
+        )
+        v.addWidget(cb)
+        hl = QHBoxLayout()
+        b_no = QPushButton("Cancel·lar")
+        b_yes = QPushButton("Buscar")
+        b_yes.setStyleSheet("background-color: #7b1fa2; color: white;")
+        hl.addStretch()
+        hl.addWidget(b_no)
+        hl.addWidget(b_yes)
+        v.addLayout(hl)
+        b_no.clicked.connect(dlg_mode.reject)
+        b_yes.clicked.connect(dlg_mode.accept)
+        if not dlg_mode.exec():
+            return
+        mode = cb.currentIndex()  # 0 filepath, 1 sha256, 2 title+artist
+
+        # Recollir dades de la taula
+        rows = []
+        for r in range(self.table.rowCount()):
+            it = self.table.item(r, 4)
+            if not it:
+                continue
+            fp = it.data(Qt.ItemDataRole.UserRole) or ""
+            title = it.text() or ""
+            artist_it = self.table.item(r, 3)
+            artist = artist_it.text() if artist_it else ""
+            rows.append({"row": r, "filepath": fp, "title": title, "artist": artist})
+
+        # Agrupar per clau
+        from collections import defaultdict
+
+        groups: dict[str, list] = defaultdict(list)
+        sha_cache: dict[str, str] = {}
+        if mode == 1:
+            try:
+                from services.db import get_db
+
+                db = get_db()
+                all_tracks = db.get_all_tracks() if hasattr(db, "get_all_tracks") else []
+                # all_tracks pot ser list[dict] amb sha256
+                for t in all_tracks:
+                    fp2 = t.get("filepath", "")
+                    if fp2:
+                        sha_cache[os.path.normpath(fp2).lower()] = t.get("sha256", "") or ""
+            except Exception:
+                pass
+
+        for rec in rows:
+            fp = rec["filepath"]
+            if mode == 0:
+                key = os.path.normpath(fp).lower() if fp else ""
+            elif mode == 1:
+                key = sha_cache.get(os.path.normpath(fp).lower(), "") if fp else ""
+                if not key:
+                    # Fallback a filepath si no hi ha sha
+                    key = os.path.normpath(fp).lower() if fp else ""
+            else:  # title+artist
+                key = f"{(rec['title'] or '').strip().lower()}|{(rec['artist'] or '').strip().lower()}"
+                if not key.strip("|"):
+                    key = os.path.normpath(fp).lower() if fp else ""
+            if key:
+                groups[key].append(rec)
+
+        dup_groups = {k: v for k, v in groups.items() if len(v) > 1}
+        if not dup_groups:
+            QMessageBox.information(
+                self, "Duplicats", "✅ No s'han trobat duplicats amb aquest criteri."
+            )
+            return
+
+        total_dupes = sum(len(v) - 1 for v in dup_groups.values())
+        # Confirmació
+        det = "\n".join(
+            f"• {k[:60]} → {len(v)} cops" for k, v in list(dup_groups.items())[:5]
+        )
+        if len(dup_groups) > 5:
+            det += f"\n... i {len(dup_groups)-5} grups més"
+        reply = QMessageBox.question(
+            self,
+            "Netejar duplicats",
+            f"S'han trobat {len(dup_groups)} grups amb {total_dupes} pistes duplicades.\n\n{det}\n\nEs mantindrà la primera de cada grup, s'eliminaran la resta de la LLISTA.\n¿Continuar?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        # Recollir files a eliminar (totes menys la primera de cada grup)
+        to_remove_rows = []
+        for recs in dup_groups.values():
+            # Ordenar per aparició original (row)
+            recs_sorted = sorted(recs, key=lambda x: x["row"])
+            for dup in recs_sorted[1:]:
+                to_remove_rows.append(dup["row"])
+        to_remove_rows = sorted(set(to_remove_rows), reverse=True)
+
+        # Ajustar preview row
+        for r in to_remove_rows:
+            if self._current_preview_row == r:
+                try:
+                    self.cue_player.stop()
+                except Exception:
+                    pass
+                self._current_preview_row = -1
+            elif self._current_preview_row > r:
+                self._current_preview_row -= 1
+
+        for r in to_remove_rows:
+            self.table.removeRow(r)
+
+        self._refresh_all_widgets()
+        if not self.is_master:
+            self._rebuild_all_tracks_from_table()
+        else:
+            # Marcar modificada perquè l'usuari pugui guardar la M3U netejada
+            try:
+                self._modified = True
+            except Exception:
+                pass
+
+        QMessageBox.information(
+            self,
+            "Neteja completada",
+            f"🗑 S'han eliminat {len(to_remove_rows)} pistes duplicades de la llista.\n\nLa llista netejada es pot desar amb 💾 si és master.",
+        )
