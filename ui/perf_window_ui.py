@@ -99,14 +99,6 @@ class PerfUIMixin:
         self.toolbar.addWidget(self.btn_toggle_list)
         self.toolbar.addSeparator()
 
-        # BOTÓN CROSSFADER — només visible en COMPACT (a NORMAL és al mixer)
-        self.btn_next_now = QPushButton("\u23ed\ufe0f CROSSFADER")
-        self.btn_next_now.setStyleSheet(
-            "background-color: #8a2be2; color: white; padding: 0 15px;"
-        )
-        self.btn_next_now.clicked.connect(self._on_skip_and_mix)
-        self.toolbar.addWidget(self.btn_next_now)
-
         # Botón modo compacto
         self.btn_compact_mode = QPushButton("\U0001f5d4 COMPACT")
         self.btn_compact_mode.setCheckable(True)
@@ -682,6 +674,15 @@ class PerfUIMixin:
         lbl_b = QLabel("B")
         lbl_b.setStyleSheet("color: #0078d4; font-size: 8px; font-weight: bold;")
         xf_row.addWidget(lbl_b)
+        # Botó CROSSFADER per a COMPACT (l'únic en aquesta vista)
+        self.btn_compact_crossfader = QPushButton("\u23ed\ufe0f CROSSFADER")
+        self.btn_compact_crossfader.setFixedSize(90, 20)
+        self.btn_compact_crossfader.setStyleSheet(
+            "background-color: #8a2be2; color: white; font-weight: bold; font-size: 9px; border-radius: 3px; padding: 0 5px;"
+        )
+        self.btn_compact_crossfader.setToolTip("Forzar transición inmediata (crossfade)")
+        self.btn_compact_crossfader.clicked.connect(self._on_skip_and_mix)
+        xf_row.addWidget(self.btn_compact_crossfader)
         outer.addLayout(xf_row)
         self._compact_timer = QTimer(self)
         self._compact_timer.timeout.connect(self._update_compact_bar)
@@ -836,9 +837,6 @@ class PerfUIMixin:
         self.decks_container.setVisible(not self._compact_mode)
         self.compact_bar.setVisible(self._compact_mode)
         self.btn_compact_mode.setChecked(self._compact_mode)
-        # CROSSFADER: toolbar només en COMPACT, mixer en NORMAL
-        if hasattr(self, "btn_next_now"):
-            self.btn_next_now.setVisible(self._compact_mode)
 
         if self._compact_mode:
             self._update_compact_bar()

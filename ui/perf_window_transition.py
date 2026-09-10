@@ -654,6 +654,8 @@ class PerfTransitionMixin:
                 self.btn_skip.setEnabled(False)
             if hasattr(self, "btn_crossfader_mixer"):
                 self.btn_crossfader_mixer.setEnabled(False)
+            if hasattr(self, "btn_compact_crossfader"):
+                self.btn_compact_crossfader.setEnabled(False)
             if hasattr(self, "btn_next_now"):
                 self.btn_next_now.setEnabled(False)
         except Exception:
@@ -903,6 +905,8 @@ class PerfTransitionMixin:
                     self.btn_skip.setEnabled(True)
                 if hasattr(self, "btn_crossfader_mixer"):
                     self.btn_crossfader_mixer.setEnabled(True)
+                if hasattr(self, "btn_compact_crossfader"):
+                    self.btn_compact_crossfader.setEnabled(True)
                 if hasattr(self, "btn_next_now"):
                     self.btn_next_now.setEnabled(True)
             except Exception:
