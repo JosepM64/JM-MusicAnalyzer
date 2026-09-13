@@ -48,25 +48,31 @@ except (ImportError, ModuleNotFoundError):
 
 class PerfUIMixin:
     def _apply_dark_theme(self):
+        # Normalized per DESIGN.md §5-6, uses tokens, keeps existing palette
+        try:
+            from ui.tokens import BG_700, BG_800, BG_900, PRIMARY, STROKE_400, TEXT_80
+            from ui.styles import APP_GLOBAL_QSS
+        except Exception:
+            BG_700, BG_900, STROKE_400, TEXT_80, PRIMARY = "#222", "#0f0f0f", "#444", "#e6e6e6", "#0078d4"
+            APP_GLOBAL_QSS = ""
         p = self.palette()
-        p.setColor(QPalette.ColorRole.Window, QColor(20, 20, 20))
+        p.setColor(QPalette.ColorRole.Window, QColor(15, 15, 15))  # BG_900
         p.setColor(QPalette.ColorRole.WindowText, Qt.GlobalColor.white)
-        p.setColor(QPalette.ColorRole.Base, QColor(30, 30, 30))
+        p.setColor(QPalette.ColorRole.Base, QColor(26, 26, 26))  # BG_800
         p.setColor(QPalette.ColorRole.Text, Qt.GlobalColor.white)
-        p.setColor(QPalette.ColorRole.Button, QColor(45, 45, 45))
+        p.setColor(QPalette.ColorRole.Button, QColor(51, 51, 51))  # BG_400
         p.setColor(QPalette.ColorRole.ButtonText, Qt.GlobalColor.white)
         p.setColor(QPalette.ColorRole.Highlight, QColor(0, 120, 212))
         self.setPalette(p)
-        self.setStyleSheet("""
-            QMainWindow { background-color: #121212; }
-            QLabel { color: #eee; font-family: 'Segoe UI', sans-serif; }
-            QToolBar { background-color: #222; border-bottom: 1px solid #444; spacing: 10px; }
-            QPushButton { 
-                background-color: #333; color: white; border: 1px solid #444; padding: 6px; border-radius: 4px; font-weight: bold; 
-            }
-            QPushButton:hover { background-color: #444; }
-            QPushButton:pressed { background-color: #0078d4; }
-        """)
+        # Global system + DJ shell — isolated, reversible (APP_GLOBAL_QSS already tokenized)
+        self.setStyleSheet(
+            APP_GLOBAL_QSS
+            + f"""
+            QMainWindow {{ background-color: {BG_900}; }}
+            QLabel {{ color: {TEXT_80}; font-family: 'Segoe UI', sans-serif; }}
+            QToolBar {{ background-color: {BG_700}; border-bottom: 1px solid {STROKE_400}; spacing: 4px; }}
+        """
+        )
 
     def _setup_ui(self):
         self.toolbar = QToolBar("DJ Tools")
@@ -262,12 +268,12 @@ class PerfUIMixin:
         meta_label.setStyleSheet("color: #aaa; font-size: 10px;")
         info_layout.addWidget(meta_label)
 
-        # Campos de edición
+        # Campos de edición — normalized dark per DESIGN.md §5 (was white #fff break)
         self.edit_title = QLineEdit()
         self.edit_title.setPlaceholderText("Título")
         self.edit_title.setMaximumHeight(20)
         self.edit_title.setStyleSheet(
-            "color: #000; background-color: #fff; border: 1px solid #444; font-size: 10px; padding: 1px 3px;"
+            "color: #fff; background-color: #333; border: 1px solid #444; border-radius: 3px; font-size: 10px; padding: 2px 4px; font-family: 'Segoe UI', sans-serif;"
         )
         info_layout.addWidget(self.edit_title)
 
@@ -275,7 +281,7 @@ class PerfUIMixin:
         self.edit_artist.setPlaceholderText("Artista")
         self.edit_artist.setMaximumHeight(20)
         self.edit_artist.setStyleSheet(
-            "color: #000; background-color: #fff; border: 1px solid #444; font-size: 10px; padding: 1px 3px;"
+            "color: #fff; background-color: #333; border: 1px solid #444; border-radius: 3px; font-size: 10px; padding: 2px 4px; font-family: 'Segoe UI', sans-serif;"
         )
         info_layout.addWidget(self.edit_artist)
 
@@ -283,7 +289,7 @@ class PerfUIMixin:
         self.edit_genre.setPlaceholderText("Género")
         self.edit_genre.setMaximumHeight(20)
         self.edit_genre.setStyleSheet(
-            "color: #000; background-color: #fff; border: 1px solid #444; font-size: 10px; padding: 1px 3px;"
+            "color: #fff; background-color: #333; border: 1px solid #444; border-radius: 3px; font-size: 10px; padding: 2px 4px; font-family: 'Segoe UI', sans-serif;"
         )
         info_layout.addWidget(self.edit_genre)
 

@@ -2,7 +2,7 @@
 
 ## Descripció
 Analitzador de música i eina DJ. Python 3.13 + PySide6.
-- **Versió**: 4.54.0 | **Data**: 2026-09-10 | **Build**: ~211 MB
+- **Versió**: 4.54.1 | **Data**: 2026-09-14 | **Build**: ~211 MB
 
 ## Estructura
 ```
@@ -44,7 +44,7 @@ Editar `JM_MusicAnalizer/__init__.py` → canviar `APP_VERSION`. La build genera
 ```bat
 python verify_automatica.py
 # o: python scripts/verify_automatica.py  (shim)
-# 175/175 tests
+# 176/176 tests
 ```
 
 ## Dependències
@@ -57,9 +57,9 @@ mutagen, numpy, musicbrainzngs, sounddevice, soundfile, soxr (resampleig), pyaco
 - Taula `tracks` amb indexes sha256, genre, artist, filepath
 
 ## Últimes 3 versions
+- **v4.54.1**: Impeccable — tokens `ui/tokens.py` + `DESIGN.md`, Manager densitat (filtres 11px/5px, taula 10px/18px), fix DJ velocitat invisible (BPM 24×20 padding), F821 `main_window_scan.py:1`
 - **v4.54.0**: DJ — botó `🔍 Duplicats` a playlist (neteja duplicats de la llista carregada: filepath/SHA256/títol+artista)
 - **v4.53.3**: DJ — elimina toolbar CROSSFADER duplicat (imatge) + compact bar CROSSFADER
-- **v4.53.2**: DJ — restaura CROSSFADER a COMPACT
 
  Versions anteriors: veure fitxer de versions o git log
 

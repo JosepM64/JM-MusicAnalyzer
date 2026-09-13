@@ -2,6 +2,15 @@
 
 Tots els canvis significatius en aquest projecte es documenten en aquest fitxer.
 
+## [4.54.1] - 2026-09-14
+
+### Impeccable — Manager densitat + DJ velocitat + tokens
+- **Design system**: nou `ui/tokens.py` (S0-S5, BG_900-400, PRIMARY/TRANSPORT/SUCCESS/DANGER/WARNING/CYAN, FOCUS_PURPLE) + `DESIGN.md` v4.54.0 → tokens 4.54.1, `ui/styles.py` tokenitzat + `APP_GLOBAL_QSS` aplicat a `main_window.py:68` i `perf_window_ui.py:48` (hover/pressed/disabled/focus 4 estats)
+- **Manager densitat**: `file_list_columns.py:60` header `BG_600 10px 600` + selected `#004a80` + row 18px + `Interactive`; `main_window_menu.py` filtres `Genero120/Rating70/BPM90/Buscar200/Reset60` → `11px/5px BG_400` + focus purple, `CYAN` now_playing, progress `BG_800/PRIMARY`, toolbar `BG_700`
+- **Fix DJ velocitat**: `audio_engine_player.py:155` BPM `-10/-5/-1` i `+1/+5/+10` + `R` invisibles per `APP_GLOBAL_QSS` padding 6px 12px a 24×20 → afegit `padding:0px` explícit (funcionaven però no es veien)
+- **Fix P0**: `main_window_scan.py:1` `QWidget/QHBoxLayout` missing (Ruff F821), dialogs `DARK_DIALOG_STYLE` tokenitzat (`quick_scan`, `tracks_inspector`, `about`), `file_list_data.py` `TEXT_40/WARNING`, `metadata_panel.py` tokenitzat
+- **Verify**: `verify_automatica.py` 176/176 PASS, `ruff --select F821` clean, build ~211 MB
+
 ## [4.54.0] - 2026-09-10
 
 ### DJ: botó Duplicats a la playlist

@@ -26,7 +26,12 @@ class QuickScanDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Escaneo Rápido - Seleccionar carpeta")
         self.setMinimumWidth(400)
-        self.setStyleSheet("background-color: #2d2d2d; color: #ffffff;")
+        try:
+            from ui.styles import DARK_DIALOG_STYLE
+
+            self.setStyleSheet(DARK_DIALOG_STYLE)
+        except Exception:
+            self.setStyleSheet("background-color: #1a1a1a; color: #ffffff;")
         self._selected_idx = 0
         self._paths = [
             f.get("path", f) if isinstance(f, dict) else f for f in favorites
@@ -45,13 +50,27 @@ class QuickScanDialog(QDialog):
 
         btn_layout = QHBoxLayout()
         btn_scan = QPushButton("🔍 Escanear")
-        btn_scan.setStyleSheet(
-            "background-color: #4CAF50; color: white; padding: 6px 12px;"
-        )
+        try:
+            from ui.tokens import RADIUS_MD, SUCCESS, TEXT_100
+
+            btn_scan.setStyleSheet(
+                f"background-color: {SUCCESS}; color: {TEXT_100}; padding: 6px 12px; border-radius: {RADIUS_MD}px; font-weight: 600; font-family: 'Segoe UI', sans-serif;"
+            )
+        except Exception:
+            btn_scan.setStyleSheet(
+                "background-color: #00aa00; color: white; padding: 6px 12px; border-radius: 4px; font-weight: 600;"
+            )
         btn_all = QPushButton("📂 Escanear TODAS")
-        btn_all.setStyleSheet(
-            "background-color: #FF9800; color: white; padding: 6px 12px;"
-        )
+        try:
+            from ui.tokens import RADIUS_MD, TEXT_100, WARNING
+
+            btn_all.setStyleSheet(
+                f"background-color: {WARNING}; color: {TEXT_100}; padding: 6px 12px; border-radius: {RADIUS_MD}px; font-weight: 600; font-family: 'Segoe UI', sans-serif;"
+            )
+        except Exception:
+            btn_all.setStyleSheet(
+                "background-color: #ff9800; color: white; padding: 6px 12px; border-radius: 4px; font-weight: 600;"
+            )
         btn_cancel = QPushButton("Cancelar")
         btn_cancel.setStyleSheet("padding: 6px 12px;")
 

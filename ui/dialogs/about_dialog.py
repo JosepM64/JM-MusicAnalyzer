@@ -32,7 +32,12 @@ class AboutDialog(QDialog):
         self.setWindowTitle("Acerca de JM-MusicAnalyzer")
         self.resize(500, 550)
         self.setMinimumSize(450, 500)
-        self.setStyleSheet("""
+        try:
+            from ui.styles import DARK_DIALOG_STYLE
+
+            self.setStyleSheet(DARK_DIALOG_STYLE)
+        except Exception:
+            self.setStyleSheet("""
             QDialog {
                 background-color: #1a1a1a;
             }

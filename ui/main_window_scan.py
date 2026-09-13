@@ -3,7 +3,9 @@ import os
 
 from PySide6.QtWidgets import (
     QDialog,
+    QHBoxLayout,
     QMessageBox,
+    QWidget,
 )
 from services.db import get_db
 from workers.analyze_worker import AnalyzeWorker

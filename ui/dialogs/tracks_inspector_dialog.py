@@ -36,7 +36,12 @@ class TracksInspectorDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle(f"{emoji} {title}")
         self.setMinimumSize(900, 500)
-        self.setStyleSheet("background-color: #2d2d2d; color: #ffffff;")
+        try:
+            from ui.styles import DARK_DIALOG_STYLE
+
+            self.setStyleSheet(DARK_DIALOG_STYLE)
+        except Exception:
+            self.setStyleSheet("background-color: #1a1a1a; color: #ffffff;")
 
         self._tracks = tracks
         self._mode = mode
@@ -60,9 +65,16 @@ class TracksInspectorDialog(QDialog):
 
         self._btn_stop = QPushButton("⏹ Detener preview")
         self._btn_stop.setEnabled(False)
-        self._btn_stop.setStyleSheet(
-            "background-color: #d32f2f; color: white; padding: 4px 10px;"
-        )
+        try:
+            from ui.tokens import DANGER, RADIUS_MD, TEXT_100
+
+            self._btn_stop.setStyleSheet(
+                f"background-color: {DANGER}; color: {TEXT_100}; padding: 4px 10px; border-radius: {RADIUS_MD}px; font-weight: 600;"
+            )
+        except Exception:
+            self._btn_stop.setStyleSheet(
+                "background-color: #d32f2f; color: white; padding: 4px 10px; border-radius: 4px;"
+            )
         self._btn_stop.clicked.connect(self._stop_preview)
         header.addWidget(self._btn_stop)
 
@@ -162,10 +174,16 @@ class TracksInspectorDialog(QDialog):
             self._table.setCellWidget(row, 6, actions_widget)
 
             if duration <= 0:
+                try:
+                    from ui.tokens import DANGER
+
+                    err_color = QColor(DANGER)
+                except Exception:
+                    err_color = QColor("#ff6666")
                 for col in range(7):
                     item = self._table.item(row, col)
                     if item:
-                        item.setForeground(QColor("#ff6666"))
+                        item.setForeground(err_color)
 
     def _toggle_preview(self, filepath, button):
         if self._preview_file == filepath:

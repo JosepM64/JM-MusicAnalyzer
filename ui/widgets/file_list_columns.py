@@ -57,16 +57,28 @@ class FileListColumnsMixin:
 
         self.itemSelectionChanged.connect(self._on_selection_changed)
 
-        self.setStyleSheet("""
+        # DESIGN.md §8 — tokenized header/row (BG_500 flat dark, PRIMARY 28% #004a80 selected)
+        try:
+            from ui.tokens import BG_400, BG_500, BG_600, PRIMARY, STROKE_400, TEXT_100, TEXT_80
+
+            self.setStyleSheet(f"""
+            QTableWidget {{ background-color: {BG_500}; color: {TEXT_80}; gridline-color: {BG_600}; border: 1px solid {STROKE_400}; font-size: 10px; selection-color: {TEXT_100}; font-family: 'Segoe UI', sans-serif; }}
+            QTableWidget::item {{ padding: 1px 2px; border: none; }}
+            QTableWidget::item:selected {{ background-color: #004a80; color: {TEXT_100}; }}
+            QTableWidget::item:hover {{ background-color: #3a3a3a; }}
+            QHeaderView::section {{ background-color: {BG_600}; color: {TEXT_100}; padding: 4px 6px; border: none; border-right: 1px solid {STROKE_400}; border-bottom: 2px solid {PRIMARY}; font-weight: 600; font-size: 10px; font-family: 'Segoe UI', sans-serif; }}
+            QHeaderView {{ background-color: {BG_600}; border: none; }}
+        """)
+        except Exception:
+            self.setStyleSheet("""
             QTableWidget { background-color: #2b2b2b; color: #e0e0e0; gridline-color: #333; border: 1px solid #444; font-size: 10px; selection-color: white; }
             QTableWidget::item { padding: 1px 2px; border: none; }
-            QTableWidget::item:selected { background-color: #0078d4; color: white; }
+            QTableWidget::item:selected { background-color: #004a80; color: white; }
             QTableWidget::item:hover { background-color: #3a3a3a; }
-            QTableWidget::item:selected:hover { background-color: #0078d4; }
-            QHeaderView::section { background-color: #333333; color: #ffffff; padding: 4px 8px; border: none; border-right: 1px solid #555; border-bottom: 2px solid #0078d4; font-weight: bold; font-size: 11px; }
-            QHeaderView { background-color: #333333; border: none; }
+            QHeaderView::section { background-color: #252525; color: #ffffff; padding: 4px 6px; border: none; border-right: 1px solid #444; border-bottom: 2px solid #0078d4; font-weight: 600; font-size: 10px; }
+            QHeaderView { background-color: #252525; border: none; }
         """)
-        self.verticalHeader().setDefaultSectionSize(15)
+        self.verticalHeader().setDefaultSectionSize(18)
 
     def _on_item_clicked(self, item):
         if item:

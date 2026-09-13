@@ -36,49 +36,94 @@ class MainWindowMenuMixin:
 
         toolbar = QToolBar()
         toolbar.setMovable(False)
-        toolbar.setStyleSheet(
-            "QToolBar { background: #333; border: none; padding: 2px; spacing: 3px; }"
-        )
+        # Normalized per DESIGN.md §5 §17 — BG_700 + S1 spacing
+        try:
+            from ui.tokens import BG_700, STROKE_400
+
+            toolbar.setStyleSheet(
+                f"QToolBar {{ background: {BG_700}; border: none; border-bottom: 1px solid {STROKE_400}; padding: 2px; spacing: 4px; }}"
+            )
+        except Exception:
+            toolbar.setStyleSheet(
+                "QToolBar { background: #222; border: none; border-bottom: 1px solid #444; padding: 2px; spacing: 4px; }"
+            )
 
         self.lbl_now_playing = QLabel()
-        self.lbl_now_playing.setStyleSheet(
-            "color: #00d4ff; font-size: 11px; font-weight: bold; padding: 0 8px; border: none;"
-        )
+        try:
+            from ui.tokens import CYAN
+
+            self.lbl_now_playing.setStyleSheet(
+                f"color: {CYAN}; font-size: 11px; font-weight: 700; padding: 0 8px; border: none; font-family: 'Segoe UI', sans-serif;"
+            )
+        except Exception:
+            self.lbl_now_playing.setStyleSheet(
+                "color: #00d4ff; font-size: 11px; font-weight: 700; padding: 0 8px; border: none;"
+            )
         self.lbl_now_playing.setMaximumWidth(400)
         toolbar.addWidget(self.lbl_now_playing)
 
         self.btn_folder_tree = QPushButton("\U0001f4c1")
         self.btn_folder_tree.setToolTip("Mostrar/ocultar arbol de favoritos")
         self.btn_folder_tree.setFixedSize(32, 28)
-        self.btn_folder_tree.setStyleSheet(
-            "QPushButton { font-size: 14px; border: 1px solid #555; border-radius: 3px; background: #444; } QPushButton:hover { background: #555; } QPushButton:checked { background: #0078d4; border-color: #0078d4; }"
-        )
+        try:
+            from ui.tokens import BG_400, BG_500, PRIMARY, STROKE_400
+
+            self.btn_folder_tree.setStyleSheet(
+                f"QPushButton {{ font-size: 14px; border: 1px solid {STROKE_400}; border-radius: 3px; background: {BG_400}; }} QPushButton:hover {{ background: {BG_500}; }} QPushButton:checked {{ background: {PRIMARY}; border-color: {PRIMARY}; }} QPushButton:focus {{ border: 1px solid #6a1b9a; }}"
+            )
+        except Exception:
+            self.btn_folder_tree.setStyleSheet(
+                "QPushButton { font-size: 14px; border: 1px solid #444; border-radius: 3px; background: #333; } QPushButton:hover { background: #2b2b2b; } QPushButton:checked { background: #0078d4; border-color: #0078d4; }"
+            )
         self.btn_folder_tree.setCheckable(True)
         self.btn_folder_tree.setChecked(False)
         self.btn_folder_tree.clicked.connect(self._on_toggle_folder_tree)
         toolbar.addWidget(self.btn_folder_tree)
 
         self.btn_scan_favs = QPushButton("\U0001f50d\u266b")
-        self.btn_scan_favs.setToolTip("Escanear favoritos")
+        self.btn_scan_favs.setToolTip("Escanear favoritos (Ctrl+Shift+O)")
         self.btn_scan_favs.setFixedSize(42, 28)
-        self.btn_scan_favs.setStyleSheet(
-            "QPushButton { font-size: 12px; border: 1px solid #555; border-radius: 3px; background: #444; } QPushButton:hover { background: #555; }"
-        )
+        try:
+            from ui.tokens import BG_400, BG_500, STROKE_400
+
+            self.btn_scan_favs.setStyleSheet(
+                f"QPushButton {{ font-size: 12px; border: 1px solid {STROKE_400}; border-radius: 3px; background: {BG_400}; }} QPushButton:hover {{ background: {BG_500}; }} QPushButton:focus {{ border: 1px solid #6a1b9a; }}"
+            )
+        except Exception:
+            self.btn_scan_favs.setStyleSheet(
+                "QPushButton { font-size: 12px; border: 1px solid #444; border-radius: 3px; background: #333; } QPushButton:hover { background: #2b2b2b; }"
+            )
         self.btn_scan_favs.clicked.connect(self._on_quick_scan)
         toolbar.addWidget(self.btn_scan_favs)
 
         toolbar.addSeparator()
 
+        # Filter bar — DESIGN.md §11: 11px/5px + BG_400 + focus purple, tokenized
+        try:
+            from ui.tokens import BG_400, FOCUS_PURPLE, FONT_FAMILY, RADIUS_SM, STROKE_400, TEXT_100
+
+            _filter_qss = (
+                f"QComboBox, QLineEdit {{ background-color: {BG_400}; color: {TEXT_100}; "
+                f"border: 1px solid {STROKE_400}; border-radius: {RADIUS_SM}px; "
+                f"font-size: 11px; padding: 5px; font-family: {FONT_FAMILY}; }}"
+                f"QComboBox:focus, QLineEdit:focus {{ border: 1px solid {FOCUS_PURPLE}; }}"
+                f"QComboBox QAbstractItemView {{ background-color: {BG_400}; color: {TEXT_100}; selection-background-color: {FOCUS_PURPLE}; }}"
+            )
+        except Exception:
+            _filter_qss = "QComboBox, QLineEdit { background-color: #333; color: #ffffff; border: 1px solid #444; border-radius: 3px; font-size: 11px; padding: 5px; font-family: 'Segoe UI', sans-serif; } QComboBox:focus, QLineEdit:focus { border: 1px solid #6a1b9a; }"
+
         self.combo_genre = QComboBox()
         self.combo_genre.addItem("Genero")
         self.combo_genre.setFixedWidth(120)
-        self.combo_genre.setStyleSheet("QComboBox { font-size: 10px; padding: 2px; }")
+        self.combo_genre.setStyleSheet(_filter_qss)
+        self.combo_genre.setToolTip("Filtrar per gènere (Ctrl+G)")
         toolbar.addWidget(self.combo_genre)
 
         self.combo_rating = QComboBox()
         self.combo_rating.addItems(["Rating", "1", "2", "3", "4", "5"])
         self.combo_rating.setFixedWidth(70)
-        self.combo_rating.setStyleSheet("QComboBox { font-size: 10px; padding: 2px; }")
+        self.combo_rating.setStyleSheet(_filter_qss)
+        self.combo_rating.setToolTip("Filtrar per rating")
         toolbar.addWidget(self.combo_rating)
 
         self.combo_bpm = QComboBox()
@@ -86,28 +131,43 @@ class MainWindowMenuMixin:
             ["BPM", "Sense BPM", "<90", "90-119", "120-149", "150-179", "180+"]
         )
         self.combo_bpm.setFixedWidth(90)
-        self.combo_bpm.setStyleSheet("QComboBox { font-size: 10px; padding: 2px; }")
+        self.combo_bpm.setStyleSheet(_filter_qss)
         self.combo_bpm.setToolTip(
             "Filtrar per BPM del tag (els rangs segueixen la convenció de ball)"
         )
         toolbar.addWidget(self.combo_bpm)
 
         self.search_field = QLineEdit()
-        self.search_field.setPlaceholderText("Buscar...")
+        self.search_field.setPlaceholderText("Buscar... (Ctrl+F)")
         self.search_field.setFixedWidth(200)
-        self.search_field.setStyleSheet("QLineEdit { font-size: 10px; padding: 3px; }")
+        self.search_field.setStyleSheet(_filter_qss)
+        self.search_field.setToolTip("Cerca per artista/títol/gènere (Ctrl+F)")
         toolbar.addWidget(self.search_field)
 
         btn_reset = QPushButton("Reset")
         btn_reset.setFixedWidth(60)
-        btn_reset.setStyleSheet("QPushButton { font-size: 10px; padding: 3px; }")
+        try:
+            from ui.tokens import BG_500, RADIUS_MD, STROKE_400, TEXT_80
+
+            btn_reset.setStyleSheet(
+                f"QPushButton {{ background-color: {BG_500}; color: {TEXT_80}; border: 1px solid {STROKE_400}; border-radius: {RADIUS_MD}px; font-size: 11px; padding: 5px 6px; font-weight: 600; font-family: 'Segoe UI', sans-serif; }}"
+                f"QPushButton:hover {{ background-color: #3a3a3a; }} QPushButton:pressed {{ background-color: #0078d4; border-color: #0078d4; color: #ffffff; }}"
+            )
+        except Exception:
+            btn_reset.setStyleSheet("QPushButton { font-size: 11px; padding: 5px 6px; font-weight: 600; }")
+        btn_reset.setToolTip("Netejar filtres (Esc)")
         btn_reset.clicked.connect(self._on_search_reset)
         toolbar.addWidget(btn_reset)
 
         toolbar.addSeparator()
 
         self.lbl_cue_vol = QLabel("CUE:")
-        self.lbl_cue_vol.setStyleSheet("color: #aaa; font-size: 10px;")
+        try:
+            from ui.tokens import TEXT_60
+
+            self.lbl_cue_vol.setStyleSheet(f"color: {TEXT_60}; font-size: 10px; font-weight: 600; font-family: 'Segoe UI', sans-serif;")
+        except Exception:
+            self.lbl_cue_vol.setStyleSheet("color: #a0a0a0; font-size: 10px; font-weight: 600;")
         toolbar.addWidget(self.lbl_cue_vol)
 
         self.slider_cue_vol = QSlider(Qt.Orientation.Horizontal)
@@ -120,20 +180,34 @@ class MainWindowMenuMixin:
         toolbar.addSeparator()
 
         self.btn_dj_mode = QPushButton("\U0001f3a7 DJ")
-        self.btn_dj_mode.setToolTip("Cambiar a Modo DJ")
+        self.btn_dj_mode.setToolTip("Cambiar a Modo DJ (Ctrl+D)")
         self.btn_dj_mode.setFixedSize(52, 28)
-        self.btn_dj_mode.setStyleSheet(
-            "QPushButton { font-size: 11px; border: 1px solid #555; border-radius: 3px; background: #444; color: #ddd; } QPushButton:hover { background: #0078d4; color: white; }"
-        )
+        try:
+            from ui.tokens import BG_400, PRIMARY, STROKE_400, TEXT_80, TEXT_100
+
+            self.btn_dj_mode.setStyleSheet(
+                f"QPushButton {{ font-size: 11px; border: 1px solid {STROKE_400}; border-radius: 3px; background: {BG_400}; color: {TEXT_80}; font-weight: 600; }} QPushButton:hover {{ background: {PRIMARY}; color: {TEXT_100}; border-color: {PRIMARY}; }} QPushButton:focus {{ border: 1px solid #6a1b9a; }}"
+            )
+        except Exception:
+            self.btn_dj_mode.setStyleSheet(
+                "QPushButton { font-size: 11px; border: 1px solid #444; border-radius: 3px; background: #333; color: #ddd; } QPushButton:hover { background: #0078d4; color: white; }"
+            )
         self.btn_dj_mode.clicked.connect(self._on_switch_to_performance)
         toolbar.addWidget(self.btn_dj_mode)
 
         btn_help = QPushButton("?")
-        btn_help.setFixedSize(24, 24)
-        btn_help.setToolTip("Ayuda rápida")
-        btn_help.setStyleSheet(
-            "QPushButton { font-size: 12px; font-weight: bold; border: 1px solid #555; border-radius: 12px; background: #444; color: #ddd; } QPushButton:hover { background: #0078d4; color: white; }"
-        )
+        btn_help.setFixedSize(28, 28)
+        btn_help.setToolTip("Ayuda rápida (F1)")
+        try:
+            from ui.tokens import BG_400, PRIMARY, STROKE_400, TEXT_80, TEXT_100
+
+            btn_help.setStyleSheet(
+                f"QPushButton {{ font-size: 12px; font-weight: 700; border: 1px solid {STROKE_400}; border-radius: 12px; background: {BG_400}; color: {TEXT_80}; }} QPushButton:hover {{ background: {PRIMARY}; color: {TEXT_100}; }} QPushButton:focus {{ border: 1px solid #6a1b9a; }}"
+            )
+        except Exception:
+            btn_help.setStyleSheet(
+                "QPushButton { font-size: 12px; font-weight: 700; border: 1px solid #444; border-radius: 12px; background: #333; color: #ddd; } QPushButton:hover { background: #0078d4; color: white; }"
+            )
         btn_help.clicked.connect(self._show_help_menu)
         toolbar.addWidget(btn_help)
 
@@ -260,18 +334,33 @@ class MainWindowMenuMixin:
         self.progress_bar.setFixedHeight(14)
         self.progress_bar.setMaximumWidth(250)
         self.progress_bar.setVisible(False)
-        self.progress_bar.setStyleSheet(
-            "QProgressBar { border: 1px solid #555; border-radius: 3px; text-align: center; font-size: 9px; }"
-            "QProgressBar::chunk { background-color: #0078d4; }"
-        )
+        try:
+            from ui.tokens import BG_800, PRIMARY, STROKE_400, TEXT_80
+
+            self.progress_bar.setStyleSheet(
+                f"QProgressBar {{ background-color: {BG_800}; border: 1px solid {STROKE_400}; border-radius: 3px; text-align: center; font-size: 9px; color: {TEXT_80}; }}"
+                f"QProgressBar::chunk {{ background-color: {PRIMARY}; border-radius: 2px; }}"
+            )
+        except Exception:
+            self.progress_bar.setStyleSheet(
+                "QProgressBar { border: 1px solid #444; border-radius: 3px; text-align: center; font-size: 9px; }"
+                "QProgressBar::chunk { background-color: #0078d4; }"
+            )
         self.statusBar().addPermanentWidget(self.progress_bar)
         self.statusBar().showMessage("Listo", 3000)
 
     def _show_help_menu(self):
         menu = QMenu(self)
-        menu.setStyleSheet(
-            "QMenu { background: #2b2b2b; color: #e0e0e0; border: 1px solid #555; padding: 4px; } QMenu::item { padding: 6px 20px; } QMenu::item:selected { background: #0078d4; }"
-        )
+        try:
+            from ui.tokens import BG_500, PRIMARY, STROKE_400, TEXT_80, TEXT_100
+
+            menu.setStyleSheet(
+                f"QMenu {{ background: {BG_500}; color: {TEXT_80}; border: 1px solid {STROKE_400}; padding: 4px; font-family: 'Segoe UI', sans-serif; }} QMenu::item {{ padding: 6px 20px; }} QMenu::item:selected {{ background: {PRIMARY}; color: {TEXT_100}; }} QMenu::separator {{ height: 1px; background: {STROKE_400}; margin: 4px 8px; }}"
+            )
+        except Exception:
+            menu.setStyleSheet(
+                "QMenu { background: #2b2b2b; color: #e0e0e0; border: 1px solid #444; padding: 4px; } QMenu::item { padding: 6px 20px; } QMenu::item:selected { background: #0078d4; }"
+            )
 
         act_db = menu.addAction("Base de Datos")
         act_filters = menu.addAction("Filtros y Búsqueda")
@@ -347,15 +436,28 @@ class MainWindowMenuMixin:
         dlg = QDialog(self)
         dlg.setWindowTitle(f"Ayuda - {title}")
         dlg.setFixedSize(420, 380)
-        dlg.setStyleSheet("QDialog { background: #2b2b2b; }")
-        layout = QVBoxLayout(dlg)
-        browser = QTextBrowser()
-        browser.setHtml(
-            f"<div style='color:#e0e0e0; font-size:12px; font-family:Segoe UI; padding:8px;'>{html}</div>"
-        )
-        browser.setStyleSheet(
-            "QTextBrowser { background: #333; border: none; color: #e0e0e0; }"
-        )
+        try:
+            from ui.tokens import BG_500, BG_400, TEXT_80
+
+            dlg.setStyleSheet(f"QDialog {{ background: {BG_500}; }}")
+            layout = QVBoxLayout(dlg)
+            browser = QTextBrowser()
+            browser.setHtml(
+                f"<div style='color:{TEXT_80}; font-size:12px; font-family:Segoe UI; padding:8px;'>{html}</div>"
+            )
+            browser.setStyleSheet(
+                f"QTextBrowser {{ background: {BG_400}; border: none; color: {TEXT_80}; border-radius: 3px; }}"
+            )
+        except Exception:
+            dlg.setStyleSheet("QDialog { background: #2b2b2b; }")
+            layout = QVBoxLayout(dlg)
+            browser = QTextBrowser()
+            browser.setHtml(
+                f"<div style='color:#e0e0e0; font-size:12px; font-family:Segoe UI; padding:8px;'>{html}</div>"
+            )
+            browser.setStyleSheet(
+                "QTextBrowser { background: #333; border: none; color: #e0e0e0; }"
+            )
         layout.addWidget(browser)
         dlg.exec_()
 

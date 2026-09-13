@@ -29,9 +29,12 @@ QPushButton {{
     padding: 3px 8px;
     border-radius: 3px;
     border: none;
+    font-family: 'Segoe UI', sans-serif;
 }}
 QPushButton:hover {{ background-color: {hover}; }}
-QPushButton:disabled {{ background-color: #555; color: #777; }}
+QPushButton:pressed {{ background-color: {bg}; }}
+QPushButton:disabled {{ background-color: #2b2b2b; color: #9a9a9a; }}
+QPushButton:focus {{ border: 1px solid #6a1b9a; }}
 """
 
 
@@ -98,7 +101,12 @@ class MetadataPanel(QGroupBox):
         grid.setHorizontalSpacing(6)
         grid.setVerticalSpacing(3)
 
-        lbl_style = "font-size: 9px; color: #888; font-weight: bold;"
+        try:
+            from ui.tokens import FONT_FAMILY, TEXT_40
+
+            lbl_style = f"font-size: 9px; color: {TEXT_40}; font-weight: 700; font-family: {FONT_FAMILY};"
+        except Exception:
+            lbl_style = "font-size: 9px; color: #9a9a9a; font-weight: 700; font-family: 'Segoe UI', sans-serif;"
 
         row = 0
         grid.addWidget(QLabel("Título"), row, 0)
@@ -154,7 +162,7 @@ class MetadataPanel(QGroupBox):
         rl.setContentsMargins(0, 0, 0, 0)
         rl.setSpacing(2)
         lbl_r = QLabel("★")
-        lbl_r.setStyleSheet("font-size: 13px; color: #FFD700;")
+        lbl_r.setStyleSheet("font-size: 13px; color: #FFD700;")  # gold — semantic keep
         rl.addWidget(lbl_r)
         rl.addWidget(self.rating_edit)
         rl.addStretch()
@@ -211,9 +219,16 @@ class MetadataPanel(QGroupBox):
         action_row.addStretch()
 
         self.lbl_batch_count = QLabel("")
-        self.lbl_batch_count.setStyleSheet(
-            "color: #ffcc00; font-size: 10px; font-weight: bold; padding: 0 4px;"
-        )
+        try:
+            from ui.tokens import WARNING
+
+            self.lbl_batch_count.setStyleSheet(
+                f"color: {WARNING}; font-size: 10px; font-weight: 700; padding: 0 4px; font-family: 'Segoe UI', sans-serif;"
+            )
+        except Exception:
+            self.lbl_batch_count.setStyleSheet(
+                "color: #ffcc00; font-size: 10px; font-weight: 700; padding: 0 4px;"
+            )
         action_row.addWidget(self.lbl_batch_count)
 
         self.btn_save = QPushButton("\U0001f4be GUARDAR")
@@ -230,7 +245,12 @@ class MetadataPanel(QGroupBox):
         # --- Separator ---
         sep = QFrame()
         sep.setFrameShape(QFrame.Shape.HLine)
-        sep.setStyleSheet("color: #444;")
+        try:
+            from ui.tokens import STROKE_400
+
+            sep.setStyleSheet(f"color: {STROKE_400};")
+        except Exception:
+            sep.setStyleSheet("color: #444;")
         self.main_layout.addWidget(sep)
 
         # --- Imports row: Favoritos + Carpetas ---
@@ -288,7 +308,12 @@ class MetadataPanel(QGroupBox):
         import_row.addStretch()
 
         self.lbl_current_folder = QLabel("")
-        self.lbl_current_folder.setStyleSheet("color: #666; font-size: 9px;")
+        try:
+            from ui.tokens import TEXT_40
+
+            self.lbl_current_folder.setStyleSheet(f"color: {TEXT_40}; font-size: 9px; font-family: 'Segoe UI', sans-serif;")
+        except Exception:
+            self.lbl_current_folder.setStyleSheet("color: #9a9a9a; font-size: 9px;")
         self.lbl_current_folder.setMaximumWidth(120)
         import_row.addWidget(self.lbl_current_folder)
 

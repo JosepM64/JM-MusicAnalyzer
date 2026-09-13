@@ -152,12 +152,12 @@ class AudioEnginePlayerWidget(DeckVinylMixin, DeckControlsMixin, DeckBpmMixin, Q
             )
             bpm_layout.addWidget(lbl)
             self._beat_labels.append(lbl)
-        # Botones -10, -5, -1
+        # Botones -10, -5, -1 — padding 0 per evitar que APP_GLOBAL_QSS (6px 12px) els faci invisibles a 24x20 (fix DJ velocitat)
         for delta in [-10, -5, -1]:
             btn = QPushButton(f"{delta:+d}")
             btn.setFixedSize(24, 20)
             btn.setStyleSheet(
-                "font-size: 8px; background: #333; color: white; border: 1px solid #444; border-radius: 3px;"
+                "font-size: 8px; background: #333; color: white; border: 1px solid #444; border-radius: 3px; padding: 0px;"
             )
             btn.clicked.connect(lambda checked, d=delta: self.adjust_bpm(d))
             bpm_layout.addWidget(btn)
@@ -173,16 +173,16 @@ class AudioEnginePlayerWidget(DeckVinylMixin, DeckControlsMixin, DeckBpmMixin, Q
         self.btn_bpm_reset.setFixedSize(22, 18)
         self.btn_bpm_reset.setToolTip("Reset BPM a original")
         self.btn_bpm_reset.setStyleSheet(
-            "font-size: 9px; font-weight: bold; background: #444; color: #ddd; border: 1px solid #666; border-radius: 3px;"
+            "font-size: 9px; font-weight: bold; background: #444; color: #ddd; border: 1px solid #666; border-radius: 3px; padding: 0px;"
         )
         self.btn_bpm_reset.clicked.connect(self._reset_bpm)
         bpm_layout.addWidget(self.btn_bpm_reset)
-        # Botones +1, +5, +10
+        # Botones +1, +5, +10 — padding 0 fix invisibilitat
         for delta in [1, 5, 10]:
             btn = QPushButton(f"{delta:+d}")
             btn.setFixedSize(24, 20)
             btn.setStyleSheet(
-                "font-size: 8px; background: #333; color: white; border: 1px solid #444; border-radius: 3px;"
+                "font-size: 8px; background: #333; color: white; border: 1px solid #444; border-radius: 3px; padding: 0px;"
             )
             btn.clicked.connect(lambda checked, d=delta: self.adjust_bpm(d))
             bpm_layout.addWidget(btn)

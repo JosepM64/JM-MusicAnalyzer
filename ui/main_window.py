@@ -68,6 +68,13 @@ class MainWindow(
         self._cue_text = ""
 
         self._setup_ui()
+        # Global design system — normalized per DESIGN.md §17 (isolated, reversible)
+        try:
+            from ui.styles import APP_GLOBAL_QSS
+
+            self.setStyleSheet(APP_GLOBAL_QSS)
+        except Exception:
+            pass
         self._setup_connections()
 
         # Defer loading tracks to after show() so window appears instantly

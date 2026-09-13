@@ -91,13 +91,18 @@ class InteractiveRatingWidget(QWidget):
             half_star_value = i + 0.5
 
             if display_rating >= star_value:
-                color = QColor("#FFD700")
+                color = QColor("#FFD700")  # gold rating — semantic, keep per DESIGN.md §8
                 text = "★"
             elif display_rating >= half_star_value:
                 color = QColor("#FFD700")
                 text = "½"
             else:
-                color = QColor("#555555")
+                try:
+                    from ui.tokens import STROKE_300
+
+                    color = QColor(STROKE_300)
+                except Exception:
+                    color = QColor("#555555")
                 text = "☆"
 
             painter.setPen(color)
@@ -193,11 +198,21 @@ class FileListDataMixin:
         item_file = QTableWidgetItem(filename)
         item_file.setData(Qt.ItemDataRole.UserRole, filepath)
         if highlight_new:
-            item_file.setForeground(QColor("#ffb347"))
+            try:
+                from ui.tokens import WARNING
+
+                item_file.setForeground(QColor(WARNING))
+            except Exception:
+                item_file.setForeground(QColor("#ffb347"))
             item_file.setToolTip("🆕 Descarregada recentment")
 
         item_folder = QTableWidgetItem(subfolder)
-        item_folder.setForeground(QColor("#888"))
+        try:
+            from ui.tokens import TEXT_40
+
+            item_folder.setForeground(QColor(TEXT_40))
+        except Exception:
+            item_folder.setForeground(QColor("#9a9a9a"))
         item_folder.setToolTip(subfolder)
 
         self.setItem(row, 6, item_folder)
@@ -254,7 +269,12 @@ class FileListDataMixin:
                 btn.setToolTip(
                     f"Pre-escoltar: {os.path.basename(filepath)} (sense bitrate)"
                 )
-                btn.setStyleSheet("QPushButton { color: #888; }")
+                try:
+                    from ui.tokens import TEXT_40
+
+                    btn.setStyleSheet(f"QPushButton {{ color: {TEXT_40}; }}")
+                except Exception:
+                    btn.setStyleSheet("QPushButton { color: #9a9a9a; }")
 
         if tech:
             item_br = NumericTableWidgetItem(f"{tech.bitrate or '??'}")
@@ -376,7 +396,12 @@ class FileListDataMixin:
                 item_file.setData(Qt.ItemDataRole.UserRole, filepath)
 
                 item_folder = QTableWidgetItem(subfolder)
-                item_folder.setForeground(QColor("#888"))
+                try:
+                    from ui.tokens import TEXT_40
+
+                    item_folder.setForeground(QColor(TEXT_40))
+                except Exception:
+                    item_folder.setForeground(QColor("#9a9a9a"))
                 item_folder.setToolTip(subfolder)
 
                 artist = track.get("artist", "...")
