@@ -2,6 +2,13 @@
 
 Tots els canvis significatius en aquest projecte es documenten en aquest fitxer.
 
+## [4.54.2] - 2026-09-14
+
+### Fix: tema fosc propi (en un PC amb Windows en mode clar es veia blanc)
+- **Símptoma**: en copiar `dist` a un altre ordinador (sense Python), la graella sortia amb files blanques/fosques alternes i el tema clar.
+- **Causa arrel**: `file_list_columns.py:16` i `file_tree_widget.py:23` activen `setAlternatingRowColors(True)`; Qt pinta les files alternes amb el rol **`AlternateBase` de la paleta del sistema**, que `APP_GLOBAL_QSS` no cobreix → en Windows clar = blanc.
+- **Fix**: `app.py` nou `MusicAnalyzerApp._apply_dark_palette()` — paleta fosca pròpia amb els tokens (`Base BG_800`, `AlternateBase BG_700`, `Window BG_900`, `Text TEXT_80`, `Highlight PRIMARY`, disabled `TEXT_40`) + `styleHints().setColorScheme(Dark)`. L'app es veu idèntica amb Windows clar o fosc, i també si l'estil natiu no carrega i Qt cau a Fusion.
+
 ## [4.54.1] - 2026-09-14
 
 ### Impeccable — Manager densitat + DJ velocitat + tokens
