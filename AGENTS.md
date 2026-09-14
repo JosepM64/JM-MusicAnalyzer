@@ -2,7 +2,7 @@
 
 ## Descripció
 Analitzador de música i eina DJ. Python 3.13 + PySide6.
-- **Versió**: 4.54.4 | **Data**: 2026-09-14 | **Build**: ~211 MB
+- **Versió**: 4.54.5 | **Data**: 2026-09-14 | **Build**: ~211 MB
 
 ## Estructura
 ```
@@ -57,9 +57,9 @@ mutagen, numpy, musicbrainzngs, sounddevice, soundfile, soxr (resampleig), pyaco
 - Taula `tracks` amb indexes sha256, genre, artist, filepath
 
 ## Últimes 3 versions
+- **v4.54.5**: Fix botons de la pantalla DJ sense símbol (21 botons: barra de la llista, paginació, compactes, LOOP, ❓, ■/🎧 dels decks, 💾/🔍 caràtula) amb el nou helper `ui/styles.icon_btn_qss()` + constants per als que es reassignen en calent; guarda `verify_icon_button_padding()` a `verify_automatica.py` (WARN) perquè no torni a passar
 - **v4.54.4**: Fixes visuals (botons 🎧 de la graella invisibles + text `"??"`, ▶/⏹ compactes DJ invisibles, SKIP/CROSSFADER/LOOP i 📁/🔍♫ al límit) + `blockSignals` a `_on_search_reset` + neteja de codi mort (vu_meter.py sencer, 9 senyals mai emesos, 21 funcions orfes; ruff 33→2)
 - **v4.54.3**: Fix botó `🎧 DJ` de la pantalla inicial — `padding: 0px` + 52→58 px (el padding global del QSS tallava la "J")
-- **v4.54.2**: Fix tema fosc propi — `app.py:_apply_dark_palette()` força paleta fosca (`AlternateBase` inclòs) perquè les files alternes de la graella/arbre no agafin el tema clar de Windows d'un altre PC
 
  Versions anteriors: veure fitxer de versions o git log
 

@@ -202,11 +202,11 @@ class MainWindowMenuMixin:
             from ui.tokens import BG_400, PRIMARY, STROKE_400, TEXT_80, TEXT_100
 
             btn_help.setStyleSheet(
-                f"QPushButton {{ font-size: 12px; font-weight: 700; border: 1px solid {STROKE_400}; border-radius: 12px; background: {BG_400}; color: {TEXT_80}; }} QPushButton:hover {{ background: {PRIMARY}; color: {TEXT_100}; }} QPushButton:focus {{ border: 1px solid #6a1b9a; }}"
+                f"QPushButton {{ font-size: 12px; font-weight: 700; border: 1px solid {STROKE_400}; border-radius: 12px; background: {BG_400}; color: {TEXT_80}; padding: 0px; }} QPushButton:hover {{ background: {PRIMARY}; color: {TEXT_100}; }} QPushButton:focus {{ border: 1px solid #6a1b9a; }}"
             )
         except Exception:
             btn_help.setStyleSheet(
-                "QPushButton { font-size: 12px; font-weight: 700; border: 1px solid #444; border-radius: 12px; background: #333; color: #ddd; } QPushButton:hover { background: #0078d4; color: white; }"
+                "QPushButton { font-size: 12px; font-weight: 700; border: 1px solid #444; border-radius: 12px; background: #333; color: #ddd; padding: 0px; } QPushButton:hover { background: #0078d4; color: white; }"
             )
         btn_help.clicked.connect(self._show_help_menu)
         toolbar.addWidget(btn_help)

@@ -2,6 +2,30 @@
 
 Tots els canvis significatius en aquest projecte es documenten en aquest fitxer.
 
+## [4.54.5] - 2026-09-14
+
+### Fix: botones de la pantalla DJ sin símbolo visible + guarda contra regressions
+
+**Causa**: `APP_GLOBAL_QSS` aplica `QPushButton { padding: 6px 12px }`. En un botón de 24-28 px eso deja **0 px de contenido** (el emoji no se ve), y en un botón de altura fija 22-24 px deja **8-10 px** (texto recortado). Cuatro botones ya "arreglados" en v4.54.4 volvían a romperse porque un `_update_*`/`_on_*` reassignaba el stylesheet sin padding.
+
+**Helper nuevo (`ui/styles.py`)**
+- `icon_btn_qss(font_size, extra, pad)` — QSS único para botones de icono: **siempre** sobreescribe el padding (documentado con el porqué).
+- Constantes compartidas para los que se reasignan en caliente: `COMPACT_PLAY_OFF_QSS`, `COMPACT_PLAY_ON_QSS`, `COMPACT_STOP_QSS`, `LOOP_BTN_OFF_QSS`, `LOOP_BTN_ON_QSS`.
+
+**21 botones arreglados (verificados con medición: 25/25 `sizeHint <= fixedSize`)**
+- `ui/widgets/playlist_widget.py` — barra al lado del selector de lista: `📂` `💾` `🔄` `🗑` `✏` (master) y `📁` `🔄` `📚` `🔄` (2ª lista) + paginación `⏮ ◀ ▶ ⏭`.
+- `ui/perf_window_ui.py` — `❓` de ayuda DJ, `▶`/`⏸`/`⏹` compactos (constructor **y** `_update_compact_bar`, que los rompía otra vez), `💾 GUARDAR` (altura 24 con 12 px de padding vertical), LOOP.
+- `ui/perf_window_transition.py` — `🔁 LOOP ON`/`OFF` en `_on_loop_toggle` y al final del loop visual (regresión en caliente).
+- `ui/widgets/audio_engine_player.py` — `■` (stop) y `🎧` (CUE) de los decks.
+- `ui/widgets/cover_widget.py` — `💾` y `🔍` de la carátula (24×18, `border: none` → contenido 0 px).
+- `ui/main_window_menu.py` — `?` de ayuda del Manager (detectado por el nuevo check).
+- LOOP pasa de 70 a **78 px** ("🔁 LOOP ON" necesitaba exactamente 70: 0 px de margen).
+
+**Guarda contra regressions (`verify_automatica.py`)**
+- Nuevo `verify_icon_button_padding()`: recorre `ui/` y `plugins/`, detecta botones con texto y `setFixedSize/Height/Width ≤ 34 px` y avisa (**WARN**, no falla la suite) si **ningún** stylesheet del botón sobreescribe el padding. Resuelve constantes propias con padding (`_ACTION_BTN`, `CUE_BTN_QSS`…) para no dar falsos positivos. Estado actual: **49 botones revisados, 0 avisos**.
+
+**Verificación**: `verify_automatica.py` 177/0 (8 avisos de otros checks), ruff F limpio, medición 25/25 OK y render visual de los 22 botones sin ninguna caja vacía.
+
 ## [4.54.4] - 2026-09-14
 
 ### Fixes visuales (patrón setFixedSize + padding global del QSS) + limpieza de código muerto

@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
 from .deck_bpm import DeckBpmMixin
 from .deck_controls import DeckControlsMixin
 from .deck_vinyl import DeckVinylMixin, GenreLabel, VinylWidget
+from ui.styles import icon_btn_qss
 
 logger = logging.getLogger(__name__)
 
@@ -265,7 +266,10 @@ qproperty-textFormat: PlainText;
         self.btn_stop = QPushButton("■")
         self.btn_stop.setFixedSize(28, 28)
         self.btn_stop.setStyleSheet(
-            "background-color: #3a1a1a; color: #ff4444; border: 1px solid #5a2a2a; border-radius: 4px;"
+            icon_btn_qss(
+                11,
+                "background-color: #3a1a1a; color: #ff4444; border: 1px solid #5a2a2a; border-radius: 4px;",
+            )
         )
         self.btn_stop.clicked.connect(self.stop)
         ctrls.addWidget(self.btn_stop)
@@ -274,7 +278,10 @@ qproperty-textFormat: PlainText;
         self.btn_cue = QPushButton("🎧")
         self.btn_cue.setFixedSize(28, 28)
         self.btn_cue.setStyleSheet(
-            "background-color: #1a1a3a; color: #6688ff; border: 1px solid #2a2a5a; border-radius: 4px;"
+            icon_btn_qss(
+                11,
+                "background-color: #1a1a3a; color: #6688ff; border: 1px solid #2a2a5a; border-radius: 4px;",
+            )
         )
         self.btn_cue.clicked.connect(self._toggle_cue)
         ctrls.addWidget(self.btn_cue)

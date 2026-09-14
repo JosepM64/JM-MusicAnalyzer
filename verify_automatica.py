@@ -477,6 +477,103 @@ def verify_ytdl_plugin(result: VerificationResult):
             result.add_fail("yt_dl", f"plugin.json error: {e}")
 
 
+def verify_icon_button_padding(result: VerificationResult):
+    """Botons d'icona amb mida fixa petita: el seu estil ha de sobreescriure el padding.
+
+    APP_GLOBAL_QSS aplica `QPushButton { padding: 6px 12px }` a tota la finestra; en un
+    botó de 24-28 px això deixa 0 px de contingut i el símbol queda invisible
+    (v4.54.4 i v4.54.5). Aquest check és NOMÉS AVIS: detecta el patró i el senyala.
+    """
+    import re
+
+    exclosos = {"dist", "build", "__pycache__", ".ruff_cache", ".opencode", "backups"}
+    creacio = re.compile(r"([A-Za-z_]\w*)\s*=\s*QPushButton\(\s*(['\"])(.+?)\2", re.S)
+    mida_fixa = re.compile(r"([A-Za-z_]\w*(?:\[[^\]]+\])?)\.setFixed(?:Size|Height|Width)\(([^)]*)\)")
+    estil = re.compile(r"([A-Za-z_]\w*(?:\[[^\]]+\])?)\.setStyleSheet\(")
+    alias = re.compile(r"([A-Za-z_]\w*(?:\[[^\]]+\])?)\s*=\s*([A-Za-z_]\w*)\s*$", re.M)
+    # tokens que ja garanteixen padding: el propi literal, els helpers/constants amb
+    # padding de ui.styles i qualsevol constant de modul el valor del qual contingui "padding"
+    tokens_ok = {
+        "padding",
+        "icon_btn_qss",
+        "COMPACT_PLAY_OFF_QSS",
+        "COMPACT_PLAY_ON_QSS",
+        "COMPACT_STOP_QSS",
+        "LOOP_BTN_OFF_QSS",
+        "LOOP_BTN_ON_QSS",
+    }
+    definicio = re.compile(r"^([A-Za-z_]\w*)\s*=", re.M)
+    fitxers_ui = []
+    for carpeta in ("ui", "plugins"):
+        for dirpath, dirs, files in os.walk(os.path.join(PROJECT_DIR, carpeta)):
+            dirs[:] = [d for d in dirs if d not in exclosos]
+            fitxers_ui += [
+                os.path.join(dirpath, n) for n in files if n.endswith(".py")
+            ]
+    for path in fitxers_ui:
+        text = read_file(path)
+        if not text or "padding" not in text:
+            continue
+        posicions = list(definicio.finditer(text))
+        for i, m in enumerate(posicions):
+            final = posicions[i + 1].start() if i + 1 < len(posicions) else len(text)
+            if "padding" in text[m.start() : final]:
+                tokens_ok.add(m.group(1))
+
+    revisats = 0
+    avisos = []
+    for path in fitxers_ui:
+        rel = os.path.relpath(path, PROJECT_DIR)
+        text = read_file(path)
+        if not text:
+            continue
+
+        amb_text = {
+            m.group(1): m.group(3).strip()
+            for m in creacio.finditer(text)
+            if m.group(3).strip()
+        }
+        if not amb_text:
+            continue
+        for m in alias.finditer(text):
+            desti, origen = m.group(1), m.group(2)
+            if origen in amb_text and desti not in amb_text:
+                amb_text[desti] = amb_text[origen]
+
+        estils = {}
+        for m in estil.finditer(text):
+            i = m.end()
+            profunditat, inici = 1, i
+            while i < len(text) and profunditat:
+                if text[i] == "(":
+                    profunditat += 1
+                elif text[i] == ")":
+                    profunditat -= 1
+                i += 1
+            estils.setdefault(m.group(1), []).append(text[inici:i])
+
+        for m in mida_fixa.finditer(text):
+            target, args = m.group(1), m.group(2)
+            nums = [int(x) for x in re.findall(r"\d+", args)]
+            if not nums or min(nums) > 34 or target not in amb_text:
+                continue
+            revisats += 1
+            propis = estils.get(target, [])
+            if propis and not any(tok in cos for cos in propis for tok in tokens_ok):
+                linia = text[: m.start()].count("\n") + 1
+                avisos.append(
+                    f"{rel}:{linia} {target} ({amb_text[target][:14]}, {min(nums)}px) sense padding"
+                )
+
+    if avisos:
+        for avis in avisos:
+            result.add_warning("Botons d'icona sense padding", avis)
+    else:
+        result.add_pass(
+            "Botons d'icona amb padding propi", f"{revisats} botons de mida fixa revisats"
+        )
+
+
 def verify_syntax_all(result: VerificationResult):
     """Verifica sintaxi de tots els fitxers Python del projecte"""
     print("[11/11] Verificació de Sintaxi...")
@@ -538,6 +635,7 @@ def main():
     verify_ui_dialogs(result)
     verify_ui_panels(result)
     verify_ytdl_plugin(result)
+    verify_icon_button_padding(result)
     verify_syntax_all(result)
 
     success = result.print_summary()

@@ -4,6 +4,8 @@ import time
 
 from PySide6.QtCore import Qt, QTimer
 
+from ui.styles import LOOP_BTN_OFF_QSS, LOOP_BTN_ON_QSS
+
 logger = logging.getLogger(__name__)
 
 
@@ -159,23 +161,13 @@ class PerfTransitionMixin:
         """Activar/desactivar loop visual mode - Efectes visuals als decks."""
         if checked:
             self.btn_loop.setText("🔁 LOOP ON")
-            self.btn_loop.setStyleSheet("""
-                QPushButton {
-                    background-color: #00aa00; color: white; font-weight: bold; font-size: 11px;
-                    border-radius: 3px;
-                }
-            """)
+            self.btn_loop.setStyleSheet(LOOP_BTN_ON_QSS)
             # Iniciar Loop Visual Mode
             self._start_loop_visual_mode()
             logger.info("LOOP Visual Mode: Activado")
         else:
             self.btn_loop.setText("🔁 LOOP")
-            self.btn_loop.setStyleSheet("""
-                QPushButton {
-                    background-color: #333; color: #888; font-weight: bold; font-size: 11px;
-                    border-radius: 3px; border: 1px solid #444;
-                }
-            """)
+            self.btn_loop.setStyleSheet(LOOP_BTN_OFF_QSS)
             logger.info("LOOP: Desactivado")
 
     def _start_loop_visual_mode(self):
@@ -263,12 +255,7 @@ class PerfTransitionMixin:
         if hasattr(self, "btn_loop"):
             self.btn_loop.setChecked(False)
             self.btn_loop.setText("🔁 LOOP")
-            self.btn_loop.setStyleSheet("""
-                QPushButton {
-                    background-color: #333; color: #888; font-weight: bold; font-size: 11px;
-                    border-radius: 3px; border: 1px solid #444;
-                }
-            """)
+            self.btn_loop.setStyleSheet(LOOP_BTN_OFF_QSS)
 
         logger.info("LOOP Visual Mode: Finalitzat")
 

@@ -27,6 +27,13 @@ from PySide6.QtWidgets import (
 
 from ui.dialogs.about_dialog import AboutDialog
 from ui.dialogs.settings_dialog import SettingsDialog
+from ui.styles import (
+    COMPACT_PLAY_OFF_QSS,
+    COMPACT_PLAY_ON_QSS,
+    COMPACT_STOP_QSS,
+    LOOP_BTN_OFF_QSS,
+    icon_btn_qss,
+)
 from ui.widgets.audio_engine_player import AudioEnginePlayerWidget
 from ui.widgets.cover_widget import CoverWidget
 from ui.widgets.player_widget import PlayerWidget
@@ -95,7 +102,11 @@ class PerfUIMixin:
         self.btn_help_dj.setFixedSize(24, 24)
         self.btn_help_dj.setToolTip("Ayuda rápida DJ")
         self.btn_help_dj.setStyleSheet(
-            "QPushButton { font-size: 12px; font-weight: bold; border: 1px solid #555; border-radius: 12px; background: #444; color: #ddd; } QPushButton:hover { background: #0078d4; color: white; }"
+            icon_btn_qss(
+                12,
+                "font-weight: bold; border: 1px solid #555; border-radius: 12px; background: #444; color: #ddd;",
+            )
+            + "QPushButton:hover { background: #0078d4; color: white; }"
         )
         self.btn_help_dj.clicked.connect(self._show_dj_help)
         self.toolbar.addWidget(self.btn_help_dj)
@@ -318,7 +329,11 @@ class PerfUIMixin:
         self.btn_save_metadata = QPushButton("\U0001f4be GUARDAR")
         self.btn_save_metadata.setFixedHeight(24)
         self.btn_save_metadata.setStyleSheet(
-            "background-color: #6a1b9a; color: white; font-weight: bold; font-size: 10px; border-radius: 3px;"
+            icon_btn_qss(
+                10,
+                "background-color: #6a1b9a; color: white; font-weight: bold; border-radius: 3px;",
+                pad="0px 6px",
+            )
         )
         self.btn_save_metadata.clicked.connect(self._save_metadata_from_info_panel)
         self.btn_save_metadata.setEnabled(False)
@@ -606,16 +621,11 @@ class PerfUIMixin:
         # Botón LOOP (extender final de canción)
         self.btn_loop = QPushButton("\U0001f501 LOOP")
         self.btn_loop.setCheckable(True)
-        self.btn_loop.setFixedSize(70, 28)
-        self.btn_loop.setStyleSheet("""
-            QPushButton {
-                background-color: #333; color: #888; font-weight: bold; font-size: 11px;
-                border-radius: 3px; border: 1px solid #444; padding: 0px 4px;
-            }
-            QPushButton:checked {
-                background-color: #00aa00; color: white;
-            }
-        """)
+        self.btn_loop.setFixedSize(78, 28)
+        self.btn_loop.setStyleSheet(
+            LOOP_BTN_OFF_QSS
+            + "QPushButton:checked { background-color: #00aa00; color: white; }"
+        )
         self.btn_loop.setToolTip("Activar loop al final de la canción")
         self.btn_loop.clicked.connect(self._on_loop_toggle)
         trans_row.addWidget(self.btn_loop)
@@ -705,9 +715,7 @@ class PerfUIMixin:
         header.addStretch()
         btn_play = QPushButton("\u25b6")
         btn_play.setFixedSize(22, 20)
-        btn_play.setStyleSheet(
-            "font-size: 9px; background: #1a3a1a; color: #4a4; border: 1px solid #2a5a2a; border-radius: 3px; padding: 0px;"
-        )
+        btn_play.setStyleSheet(COMPACT_PLAY_OFF_QSS)
         btn_play.clicked.connect(
             lambda checked=False, l=letter: self._compact_play_pause(l)
         )
@@ -715,9 +723,7 @@ class PerfUIMixin:
         c["play"] = btn_play
         btn_stop = QPushButton("\u23f9")
         btn_stop.setFixedSize(20, 20)
-        btn_stop.setStyleSheet(
-            "font-size: 9px; background: #3a1a1a; color: #a44; border: 1px solid #5a2a2a; border-radius: 3px; padding: 0px;"
-        )
+        btn_stop.setStyleSheet(COMPACT_STOP_QSS)
         btn_stop.clicked.connect(lambda checked=False, l=letter: self._compact_stop(l))
         header.addWidget(btn_stop)
         c["stop"] = btn_stop
@@ -767,9 +773,7 @@ class PerfUIMixin:
                 c["progress"].setValue(0)
                 c["time"].setText("00:00/00:00")
                 c["play"].setText("\u25b6")
-                c["play"].setStyleSheet(
-                    "font-size: 9px; background: #1a3a1a; color: #4a4; border: 1px solid #2a5a2a; border-radius: 3px;"
-                )
+                c["play"].setStyleSheet(COMPACT_PLAY_OFF_QSS)
                 continue
             c["info"].setText(deck.lbl_info.text())
             pos = deck.deck.get_position()
@@ -786,9 +790,7 @@ class PerfUIMixin:
             is_playing = deck.deck.is_playing
             c["play"].setText("\u23f8" if is_playing else "\u25b6")
             c["play"].setStyleSheet(
-                "font-size: 9px; background: #0078d4; color: white; border: 1px solid #005a9e; border-radius: 3px;"
-                if is_playing
-                else "font-size: 9px; background: #1a3a1a; color: #4a4; border: 1px solid #2a5a2a; border-radius: 3px;"
+                COMPACT_PLAY_ON_QSS if is_playing else COMPACT_PLAY_OFF_QSS
             )
             c["vol"].blockSignals(True)
             c["vol"].setValue(deck.slider_vol.value())

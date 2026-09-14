@@ -182,6 +182,34 @@ DARK_WINDOW_QSS = APP_GLOBAL_QSS
 DARK_DJ_QSS = APP_GLOBAL_QSS  # DJ shares same global, extra per-panel overrides stay in perf_window_ui
 
 
+def icon_btn_qss(font_size: int = 11, extra: str = "", pad: str = "0px") -> str:
+    """QSS per a botons d'icona amb mida fixa (28x28, 24x24...).
+
+    El `padding: 6px 12px` d'APP_GLOBAL_QSS els deixaria 0 px de contingut i el
+    símbol quedaria invisible. El padding propi l'ha de sobreescriure SEMPRE,
+    també quan l'estil es reassigna en calent des d'un _update_*/_on_*.
+    """
+    return f"QPushButton {{ padding: {pad}; font-size: {font_size}px; {extra} }}"
+
+
+# Botons de la finestra DJ que es reassignen en calent (constructor + _update_*/_on_*)
+COMPACT_PLAY_OFF_QSS = icon_btn_qss(
+    9, "background: #1a3a1a; color: #4a4; border: 1px solid #2a5a2a; border-radius: 3px;"
+)
+COMPACT_PLAY_ON_QSS = icon_btn_qss(
+    9, "background: #0078d4; color: white; border: 1px solid #005a9e; border-radius: 3px;"
+)
+COMPACT_STOP_QSS = icon_btn_qss(
+    9, "background: #3a1a1a; color: #a44; border: 1px solid #5a2a2a; border-radius: 3px;"
+)
+LOOP_BTN_OFF_QSS = icon_btn_qss(
+    11,
+    "background-color: #333; color: #888; font-weight: bold; border-radius: 3px; border: 1px solid #444;",
+)
+LOOP_BTN_ON_QSS = icon_btn_qss(
+    11, "background-color: #00aa00; color: white; font-weight: bold; border-radius: 3px;"
+)
+
 
 def load_audio_devices_from_settings(settings, master_widgets=None, cue_widgets=None):
     """Load audio device settings and apply to widgets.

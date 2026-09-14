@@ -13,6 +13,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ui.styles import icon_btn_qss
+
 logger = logging.getLogger(__name__)
 
 
@@ -61,7 +63,8 @@ class CoverWidget(QWidget):
         self.btn_save.setToolTip("Guardar car\u00e1tula como imagen")
         self.btn_save.setFixedSize(24, 18)
         self.btn_save.setStyleSheet(
-            "QPushButton { font-size: 9px; background: #444; border-radius: 2px; border: none; } QPushButton:hover { background: #666; }"
+            icon_btn_qss(9, "background: #444; border-radius: 2px; border: none;")
+            + "QPushButton:hover { background: #666; }"
         )
         self.btn_save.setVisible(False)
         self.btn_save.clicked.connect(self._on_save_cover)
@@ -71,7 +74,8 @@ class CoverWidget(QWidget):
         self.btn_open.setToolTip("Abrir car\u00e1tula en visor externo")
         self.btn_open.setFixedSize(24, 18)
         self.btn_open.setStyleSheet(
-            "QPushButton { font-size: 9px; background: #444; border-radius: 2px; border: none; } QPushButton:hover { background: #666; }"
+            icon_btn_qss(9, "background: #444; border-radius: 2px; border: none;")
+            + "QPushButton:hover { background: #666; }"
         )
         self.btn_open.setVisible(False)
         self.btn_open.clicked.connect(self._on_open_cover)

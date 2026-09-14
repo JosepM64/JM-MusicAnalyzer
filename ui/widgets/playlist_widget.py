@@ -24,7 +24,7 @@ from services.app_paths import get_data_dir
 from services.bookmarks_manager import BookmarksManager
 from services.playlist_manager import PlaylistManager
 from services.settings_manager import SettingsManager
-from ui.styles import DARK_DIALOG_STYLE
+from ui.styles import DARK_DIALOG_STYLE, icon_btn_qss
 from ui.widgets.playlist_automix import PlaylistAutomixMixin
 from ui.widgets.playlist_cue import PlaylistCUEMixin
 from ui.widgets.playlist_file_io import PlaylistFileIOMixin
@@ -156,14 +156,14 @@ class PlaylistWidget(
         self.btn_save.customContextMenuRequested.connect(self._on_save_context_menu)
         for b in [self.btn_load, self.btn_save]:
             b.setFixedSize(28, 28)
-            b.setStyleSheet(b.styleSheet() + "font-size: 11px;")
+            b.setStyleSheet(icon_btn_qss(11))
             top.addWidget(b)
 
         if self.is_master:
             self.btn_recargar = QPushButton("🔄")
             self.btn_recargar.setToolTip("🔄 Recargar playlist desde archivo")
             self.btn_recargar.setFixedSize(28, 28)
-            self.btn_recargar.setStyleSheet("font-size: 11px;")
+            self.btn_recargar.setStyleSheet(icon_btn_qss(11))
             self.btn_recargar.clicked.connect(self._on_recargar_clicked)
             top.addWidget(self.btn_recargar)
 
@@ -171,14 +171,14 @@ class PlaylistWidget(
             self.btn_clear = QPushButton("🗑")
             self.btn_clear.setToolTip("Vaciar lista")
             self.btn_clear.setFixedSize(24, 24)
-            self.btn_clear.setStyleSheet("font-size: 10px; color: #ff6666;")
+            self.btn_clear.setStyleSheet(icon_btn_qss(10, "color: #ff6666;"))
             self.btn_clear.clicked.connect(self._clear_all)
             top.addWidget(self.btn_clear)
 
             self.btn_edit_playlist = QPushButton("✏")
             self.btn_edit_playlist.setToolTip("Editar playlist en bloc de notas")
             self.btn_edit_playlist.setFixedSize(24, 24)
-            self.btn_edit_playlist.setStyleSheet("font-size: 10px;")
+            self.btn_edit_playlist.setStyleSheet(icon_btn_qss(10))
             self.btn_edit_playlist.clicked.connect(self._edit_playlist_file)
             top.addWidget(self.btn_edit_playlist)
         else:
@@ -238,21 +238,21 @@ class PlaylistWidget(
             self.btn_load_favorite = QPushButton("📁")
             self.btn_load_favorite.setToolTip("Cargar favorito")
             self.btn_load_favorite.setFixedSize(28, 28)
-            self.btn_load_favorite.setStyleSheet("font-size: 11px;")
+            self.btn_load_favorite.setStyleSheet(icon_btn_qss(11))
             self.btn_load_favorite.clicked.connect(self._on_load_favorite_clicked)
             top.addWidget(self.btn_load_favorite)
 
             self.btn_load_playlist = QPushButton("🔄")
             self.btn_load_playlist.setToolTip("🔄 Recargar")
             self.btn_load_playlist.setFixedSize(28, 28)
-            self.btn_load_playlist.setStyleSheet("font-size: 11px;")
+            self.btn_load_playlist.setStyleSheet(icon_btn_qss(11))
             self.btn_load_playlist.clicked.connect(self._on_recargar_clicked)
             top.addWidget(self.btn_load_playlist)
 
             self.btn_load_library = QPushButton("📚")
             self.btn_load_library.setToolTip("Cargar toda la biblioteca desde DB")
             self.btn_load_library.setFixedSize(28, 28)
-            self.btn_load_library.setStyleSheet("font-size: 11px;")
+            self.btn_load_library.setStyleSheet(icon_btn_qss(11))
             self.btn_load_library.clicked.connect(self._on_load_library_clicked)
             top.addWidget(self.btn_load_library)
 
@@ -261,7 +261,7 @@ class PlaylistWidget(
                 "Actualizar lista desde base de datos"
             )
             self.btn_refresh_favorites.setFixedSize(28, 28)
-            self.btn_refresh_favorites.setStyleSheet("font-size: 11px;")
+            self.btn_refresh_favorites.setStyleSheet(icon_btn_qss(11))
             self.btn_refresh_favorites.clicked.connect(
                 self._on_refresh_favorites_clicked
             )
@@ -439,7 +439,7 @@ class PlaylistWidget(
                 self.btn_page_last,
             ]:
                 btn.setFixedSize(30, 25)
-                btn.setStyleSheet("font-size: 12px;")
+                btn.setStyleSheet(icon_btn_qss(12))
 
             self.btn_page_first.clicked.connect(lambda: self._go_to_page(1))
             self.btn_page_prev.clicked.connect(
