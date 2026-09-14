@@ -92,6 +92,16 @@ mutagen, numpy, musicbrainzngs, sounddevice, soundfile, soxr (resampleig), pyaco
 - Solució: Restaurat complet del backup `E:\OpenCode\backups\JM-MusicAnalizer_backup\core\`
 - Build v4.49.0 (18/08/2026): EXE arrenca sense errors d'importació
 
+### Botons d'icona amb padding global — símbol invisible (RESOLT v4.54.4/v4.54.5, 2026-09-14)
+- **Símptoma**: botons petits (24-28 px) que es veuen com una caixa buida o amb el text tallat; l'usuari diu "no es veu el que són" (tot i que el tooltip funciona)
+- **Causa**: `APP_GLOBAL_QSS` (`ui/styles.py`) aplica `QPushButton { padding: 6px 12px; }` a tota la finestra. En un botó de 28 px queden **2 px** de contingut; en un de 24 px, **−2 px**; en un d'alçada fixa 22-24 px, **8-10 px** (text retallat verticalment)
+- **REGLES**:
+  1. Tot botó amb `setFixedSize/setFixedHeight` petit ha de sobreescriure el padding: `ui/styles.py:icon_btn_qss(font_size, extra, pad)` (mai escriure el QSS a mà)
+  2. Els botons que es **reassignen en calent** (`_update_*`/`_on_*`) han de fer servir les constants de `ui/styles.py` (`COMPACT_PLAY_OFF_QSS`, `COMPACT_PLAY_ON_QSS`, `COMPACT_STOP_QSS`, `LOOP_BTN_OFF_QSS`, `LOOP_BTN_ON_QSS`) — sinó el fix del constructor es perd al primer refresc (va passar amb ▶/⏸ compactes i LOOP a v4.54.4)
+  3. `verify_automatica.py:verify_icon_button_padding()` ho vigila (avís WARN) i resol constants pròpies amb padding (`_ACTION_BTN`, `CUE_BTN_QSS`) per no donar falsos positius
+- **Verificació**: mesurar `sizeHint()` vs `setFixedSize()` amb la **plataforma real de Windows** (en `offscreen` les mètriques són falses: dona OK a botons que a l'app es tallen) + render de la finestra
+- **Relacionat (v4.54.2)**: el tema fosc era dependent del mode de Windows per als widgets que el QSS no cobreix (les files alternes de la graella agafaven `AlternateBase` del sistema) → `app.py:_apply_dark_palette()` fixa la paleta pròpia (Base/AlternateBase/Window/Text/Highlight)
+
 ### cleanup_dist.bat vs plugins Qt — pèrdua d'estil visual (RESOLT v4.50.0, 2026-08-24)
 - **Símptoma**: l'EXE obre però sense l'estil fosc (cau a Fusion: files clares il·legibles, combos blanques, aspecte pla) i les caràtules mostren "SIN CARÁTULA"
 - **Causa**: cleanup esborrava plugins necessaris de `_internal\PySide6\plugins`:
