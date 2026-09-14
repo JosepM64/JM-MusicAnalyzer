@@ -2,7 +2,6 @@
 
 import logging
 import tempfile
-from pathlib import Path
 
 import sounddevice as sd
 import soundfile as sf

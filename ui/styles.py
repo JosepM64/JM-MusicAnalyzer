@@ -12,7 +12,6 @@ from ui.tokens import (
     BG_800,
     BG_900,
     BORDER_W,
-    DANGER,
     FOCUS_PURPLE,
     FONT_FAMILY,
     PRIMARY,

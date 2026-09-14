@@ -10,9 +10,7 @@ class FileTreeWidget(QTreeWidget):
     Widget de árbol de archivos para navegación y gestión de carpetas.
     """
 
-    folderSelected = Signal(str)
     folderClicked = Signal(str)
-    fileDropped = Signal(str)
     addToFavorites = Signal(str, bool)
     rescanFolder = Signal(str, bool)
 

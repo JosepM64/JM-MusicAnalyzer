@@ -50,11 +50,6 @@ class DatabaseManager:
     def search_tracks_filtered(self, criteria=None, **kwargs) -> list:
         return self._queries.search_tracks_filtered(criteria, **kwargs)
 
-    def get_unique_values_by_folder(
-        self, folder_path: str, column_names: list = None
-    ) -> dict:
-        return self._queries.get_unique_values_by_folder(folder_path, column_names)
-
     def find_duplicates(self):
         return self._queries.find_duplicates()
 

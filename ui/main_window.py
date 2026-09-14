@@ -199,9 +199,12 @@ class MainWindow(
 
     def _on_search_reset(self):
         self._current_folder = None
-        self.combo_genre.setCurrentIndex(0)
-        self.combo_rating.setCurrentIndex(0)
-        self.combo_bpm.setCurrentIndex(0)
+        # Sense blockSignals cada setCurrentIndex(0) dispara _apply_filters()
+        # i la BD es consultaria 3 cops de més.
+        for combo in (self.combo_genre, self.combo_rating, self.combo_bpm):
+            combo.blockSignals(True)
+            combo.setCurrentIndex(0)
+            combo.blockSignals(False)
         self.search_field.clear()
         self._apply_filters()
 

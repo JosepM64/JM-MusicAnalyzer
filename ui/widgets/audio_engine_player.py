@@ -403,7 +403,6 @@ qproperty-textFormat: PlainText;
             if self.deck.load(filepath):
                 self.current_file = filepath
                 basename = os.path.basename(filepath)
-                bpm_val = None  # Se capturará de metadatos si existe
 
                 # Carregar portada
                 try:

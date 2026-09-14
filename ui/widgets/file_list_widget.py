@@ -17,8 +17,6 @@ class FileListWidget(
     fileSelected = Signal(str)
     fileDeleted = Signal(str)
     fileMoved = Signal(str, str)
-    addToPlaylist = Signal(str)
-    addToCurrentList = Signal(str)
     addToDjMaster = Signal(str)
     createPlaylistAndAdd = Signal(str)
     fileDeleteRequested = Signal(str)

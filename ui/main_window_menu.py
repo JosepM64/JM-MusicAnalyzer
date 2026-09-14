@@ -69,11 +69,11 @@ class MainWindowMenuMixin:
             from ui.tokens import BG_400, BG_500, PRIMARY, STROKE_400
 
             self.btn_folder_tree.setStyleSheet(
-                f"QPushButton {{ font-size: 14px; border: 1px solid {STROKE_400}; border-radius: 3px; background: {BG_400}; }} QPushButton:hover {{ background: {BG_500}; }} QPushButton:checked {{ background: {PRIMARY}; border-color: {PRIMARY}; }} QPushButton:focus {{ border: 1px solid #6a1b9a; }}"
+                f"QPushButton {{ font-size: 14px; border: 1px solid {STROKE_400}; border-radius: 3px; background: {BG_400}; padding: 0px; }} QPushButton:hover {{ background: {BG_500}; }} QPushButton:checked {{ background: {PRIMARY}; border-color: {PRIMARY}; }} QPushButton:focus {{ border: 1px solid #6a1b9a; }}"
             )
         except Exception:
             self.btn_folder_tree.setStyleSheet(
-                "QPushButton { font-size: 14px; border: 1px solid #444; border-radius: 3px; background: #333; } QPushButton:hover { background: #2b2b2b; } QPushButton:checked { background: #0078d4; border-color: #0078d4; }"
+                "QPushButton { font-size: 14px; border: 1px solid #444; border-radius: 3px; background: #333; padding: 0px; } QPushButton:hover { background: #2b2b2b; } QPushButton:checked { background: #0078d4; border-color: #0078d4; }"
             )
         self.btn_folder_tree.setCheckable(True)
         self.btn_folder_tree.setChecked(False)
@@ -87,11 +87,11 @@ class MainWindowMenuMixin:
             from ui.tokens import BG_400, BG_500, STROKE_400
 
             self.btn_scan_favs.setStyleSheet(
-                f"QPushButton {{ font-size: 12px; border: 1px solid {STROKE_400}; border-radius: 3px; background: {BG_400}; }} QPushButton:hover {{ background: {BG_500}; }} QPushButton:focus {{ border: 1px solid #6a1b9a; }}"
+                f"QPushButton {{ font-size: 12px; border: 1px solid {STROKE_400}; border-radius: 3px; background: {BG_400}; padding: 0px; }} QPushButton:hover {{ background: {BG_500}; }} QPushButton:focus {{ border: 1px solid #6a1b9a; }}"
             )
         except Exception:
             self.btn_scan_favs.setStyleSheet(
-                "QPushButton { font-size: 12px; border: 1px solid #444; border-radius: 3px; background: #333; } QPushButton:hover { background: #2b2b2b; }"
+                "QPushButton { font-size: 12px; border: 1px solid #444; border-radius: 3px; background: #333; padding: 0px; } QPushButton:hover { background: #2b2b2b; }"
             )
         self.btn_scan_favs.clicked.connect(self._on_quick_scan)
         toolbar.addWidget(self.btn_scan_favs)

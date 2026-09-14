@@ -74,19 +74,6 @@ class MusicBrainzProvider:
             logger.error(f"MusicBrainz MBID lookup error: {e}")
         return None
 
-    def search_by_isrc(self, isrc: str) -> dict[str, Any] | None:
-        try:
-            time.sleep(1.0)
-            res = musicbrainzngs.get_recordings_by_isrc(
-                isrc, includes=["artists", "releases"]
-            )
-            rec_list = res.get("isrc", {}).get("recording-list", [])
-            if rec_list:
-                return self._format_result(rec_list[0])
-        except Exception as e:
-            logger.error(f"MusicBrainz ISRC lookup error: {e}")
-        return None
-
     def _format_result(self, rec: dict) -> dict:
         releases = rec.get("release-list", [])
         release = releases[0] if releases else {}

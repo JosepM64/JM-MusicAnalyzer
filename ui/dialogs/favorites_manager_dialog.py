@@ -789,11 +789,7 @@ class FavoritesManagerDialog(QDialog):
             # Eliminar de favoritos
             self.bookmarks_manager.remove_bookmark(fav_path)
 
-            # Eliminar de la base de datos
-            from services.db import get_db
-
-            db = get_db()
-            # Esto eliminaría los tracks... we'd need to add a method
+            # Nota: los tracks de la BD no se borran (requeriría un método nuevo)
 
             self._load_favorites()
 

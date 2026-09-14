@@ -234,12 +234,6 @@ class FileListActionsMixin:
                 except Exception:
                     pass
 
-    def _add_to_playlist(self, filepath):
-        self.addToPlaylist.emit(filepath)
-
-    def _add_to_current_list(self, filepath):
-        self.addToCurrentList.emit(filepath)
-
     def _add_to_dj_master(self, filepath):
         self.addToDjMaster.emit(filepath)
 
@@ -270,7 +264,6 @@ class FileListActionsMixin:
 
         from services.settings_manager import SettingsManager
 
-        current_dir = os.path.dirname(filepath)
         settings = SettingsManager()
         recent_paths = settings.get_recent_move_paths()
 
@@ -384,7 +377,6 @@ class FileListActionsMixin:
 
         from services.settings_manager import SettingsManager
 
-        current_dir = os.path.dirname(filepath)
         settings = SettingsManager()
         recent_paths = settings.get_recent_move_paths()
 

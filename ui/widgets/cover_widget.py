@@ -1,7 +1,7 @@
 import logging
 import os
 
-from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import (
     QFileDialog,
@@ -24,14 +24,7 @@ class CoverWidget(QWidget):
     - Guardar carátula a disc
     - Obrir carátula al visor del sistema
     - El botó de guardar només apareix si hi ha carátula
-
-    Senyals:
-    - coverSaveRequested: l'usuari vol guardar la carátula
-    - coverOpenRequested: l'usuari vol obrir la carátula externament
     """
-
-    coverSaveRequested = Signal()
-    coverOpenRequested = Signal()
 
     def __init__(self, size=150):
         super().__init__()

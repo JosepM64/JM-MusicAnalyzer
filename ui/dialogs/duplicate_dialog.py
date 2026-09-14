@@ -386,10 +386,6 @@ class DuplicateDialog(QDialog):
                 quality_info = self._calculate_quality_score(f)
 
                 if is_best:
-                    # Mostrar razones para el mejor
-                    reasons_str = " | ".join(
-                        quality_info["reasons"][:2]
-                    )  # Max 2 razones
                     quality = f"✓ {quality_info['effective_bitrate']} kbps"
                 else:
                     quality = f"{quality_info['effective_bitrate']} kbps"

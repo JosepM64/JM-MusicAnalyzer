@@ -430,7 +430,6 @@ class SimplePlayerWidget(QWidget):
         self.slider_progress = QSlider(Qt.Orientation.Horizontal)
         self.slider_progress.setRange(0, 0)
         self.slider_progress.setFixedHeight(12)
-        self.slider_progress.sliderPressed.connect(self._on_seek_pressed)
         self.slider_progress.sliderMoved.connect(self._on_seek_moved)
         self.slider_progress.sliderReleased.connect(self._on_seek_released)
         main_layout.addWidget(self.slider_progress)
@@ -614,9 +613,6 @@ class SimplePlayerWidget(QWidget):
 
     def _on_duration_changed(self, d):
         self.slider_progress.setRange(0, d)
-
-    def _on_seek_pressed(self):
-        pass
 
     def _on_seek_moved(self, value):
         if self.player and hasattr(self.player, "duration"):

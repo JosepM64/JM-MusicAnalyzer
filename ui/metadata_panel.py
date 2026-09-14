@@ -43,7 +43,6 @@ class MetadataPanel(QGroupBox):
     identifyRequested = Signal()
     fingerprintRequested = Signal(str)
     addFolderRequested = Signal(bool)
-    bookmarkFolderRequested = Signal(str)
     bookmarkSelected = Signal(str)
 
     def __init__(self):
@@ -359,7 +358,6 @@ class MetadataPanel(QGroupBox):
             return
         path = self.combo_bookmarks.itemData(index)
         if path:
-            self.bookmarkFolderRequested.emit(path)
             self.bookmarkSelected.emit(path)
             self.set_current_folder_label(path)
             self.combo_bookmarks.setCurrentIndex(0)
@@ -374,27 +372,6 @@ class MetadataPanel(QGroupBox):
         else:
             self.lbl_current_folder.setText("")
             self._current_favorite_path = None
-
-    def _load_suggestions_from_folder(self, folder_path):
-        try:
-            from services.db import get_db
-
-            db = get_db()
-            unique_values = db.get_unique_values_by_folder(folder_path)
-            genres = set(unique_values.get("genre", []))
-            artists = set(unique_values.get("artist", []))
-            titles = set(unique_values.get("title", []))
-            genres = {g for g in genres if g and g != "-"}
-            self._existing_genres = genres
-            self._existing_artists = artists
-            self._existing_titles = titles
-            self.genre_completer.setModel(QStringListModel(sorted(genres)))
-            self.artist_completer.setModel(QStringListModel(sorted(artists)))
-            self.title_completer.setModel(QStringListModel(sorted(titles)))
-        except Exception as e:
-            import logging
-
-            logging.getLogger(__name__).error(f"Error cargando sugerencias: {e}")
 
     def _on_add_bookmark_clicked(self):
         from PySide6.QtWidgets import QFileDialog
@@ -412,13 +389,6 @@ class MetadataPanel(QGroupBox):
         dlg = FavoritesManagerDialog(self)
         dlg.exec()
         self.refresh_bookmarks()
-
-    def update_suggestions(self, genres: list):
-        if genres:
-            self._existing_genres.update([g for g in genres if g and g != "-"])
-            self.genre_completer.setModel(
-                QStringListModel(sorted(self._existing_genres))
-            )
 
     def _on_save_clicked(self):
         if self._batch_count > 1 and self._modified_fields:

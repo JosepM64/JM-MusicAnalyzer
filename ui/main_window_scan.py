@@ -3,7 +3,6 @@ import os
 
 from PySide6.QtWidgets import (
     QDialog,
-    QHBoxLayout,
     QMessageBox,
     QWidget,
 )

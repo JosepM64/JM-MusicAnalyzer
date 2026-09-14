@@ -322,11 +322,9 @@ class PerfTransitionMixin:
                         expected_path = self._playlist_tracks[self._playlist_index]
                     else:
                         expected_path = None
-            from_fallback = False
             # Fallback a següent disponible (visual) si no hi ha expected o no és automix
             if not expected_path:
                 expected_path = self._get_next_playlist_path()
-                from_fallback = True
                 if not expected_path:
                     logger.warning(
                         "[SKIP+MEZCLAR] No hay canción en deck destino ni en playlist (cap candidate)"
@@ -765,40 +763,6 @@ class PerfTransitionMixin:
         self.lbl_transition_timer.setStyleSheet(
             "color: #4dabf7; font-size: 10px; font-weight: bold;"
         )
-
-    def _update_transition_timer(self):
-        """Actualiza el display del temporizador de transición visible"""
-        if self._fade_timer.isActive():
-            remaining_ms = self._fade_timer.remainingTime()
-            if remaining_ms > 0:
-                remaining_sec = remaining_ms // 1000
-                # Mostrar cuenta regresiva solo cuando quedan 5 segundos o menos
-                if remaining_sec <= 5:
-                    self.lbl_transition_timer.setText(f"⏱ {remaining_sec:02d}")
-                    # Color warn cuando <2s
-                    if remaining_sec < 2:
-                        self.lbl_transition_timer.setStyleSheet(
-                            "color: #ff6b6b; font-size: 10px; font-weight: bold;"
-                        )
-                    else:
-                        self.lbl_transition_timer.setStyleSheet(
-                            "color: #ffd93d; font-size: 10px; font-weight: bold;"
-                        )
-                else:
-                    self.lbl_transition_timer.setText("⏱ --")
-                    self.lbl_transition_timer.setStyleSheet(
-                        "color: #aaa; font-size: 10px; font-weight: bold;"
-                    )
-            else:
-                self.lbl_transition_timer.setText("CAMBIANDO...")
-                self.lbl_transition_timer.setStyleSheet(
-                    "color: #4dabf7; font-size: 10px; font-weight: bold;"
-                )
-        else:
-            self.lbl_transition_timer.setText("⏱ --")
-            self.lbl_transition_timer.setStyleSheet(
-                "color: #aaa; font-size: 10px; font-weight: bold;"
-            )
 
     def _handle_transition_logic(self):
         if self._fade_target_val > self._fade_current_val:

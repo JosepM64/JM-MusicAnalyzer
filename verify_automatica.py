@@ -376,7 +376,6 @@ def verify_ui_widgets(result: VerificationResult):
         "ui/widgets/file_list_data.py": ["class NumericTableWidgetItem"],
         "ui/widgets/file_tree_widget.py": ["class FileTreeWidget"],
         "ui/widgets/rating_widget.py": ["class RatingWidget"],
-        "ui/widgets/vu_meter.py": ["class StereoVuMeter"],
         "ui/widgets/row_preview_player.py": ["class RowPreviewPlayer"],
     }
 

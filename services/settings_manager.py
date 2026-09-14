@@ -15,7 +15,6 @@ class SettingsManager:
 
     def __init__(self):
         self.settings_path = os.path.join(get_data_dir(), "settings.json")
-        self._dirty = False
         self._flush_timer = None
         self.settings = self._load()
 
@@ -37,7 +36,6 @@ class SettingsManager:
         try:
             with open(self.settings_path, "w", encoding="utf-8") as f:
                 json.dump(self.settings, f, indent=4)
-            self._dirty = False
         except OSError as e:
             logger.error(f"Error saving settings: {e}")
 
@@ -67,7 +65,3 @@ class SettingsManager:
             recent = recent[:limit]
         self.settings["recent_move_paths"] = recent
         self._schedule_flush()
-
-    def flush(self):
-        if self._dirty:
-            self.save()

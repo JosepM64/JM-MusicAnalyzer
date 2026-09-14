@@ -63,9 +63,3 @@ class AudioReader(ABC):
             return os.path.getctime(self.filepath), os.path.getmtime(self.filepath)
         except OSError:
             return None, None
-
-    @staticmethod
-    def is_supported(filepath: str) -> bool:
-        """Check if file extension is supported."""
-        ext = os.path.splitext(filepath.lower())[1]
-        return ext in SUPPORTED_EXTENSIONS

@@ -354,17 +354,6 @@ class PlaylistSourceLoaderMixin:
         else:
             self.load_from_favorites()
 
-    def _on_load_playlist_clicked(self):
-        """Carga una playlist en la segunda lista."""
-        if self.is_master:
-            return
-        default_dir = str(self.settings.get("default_playlist_dir", ""))
-        p, _ = QFileDialog.getOpenFileName(
-            self, "Cargar Playlist", default_dir, "Playlist (*.m3u)"
-        )
-        if p:
-            self.load_m3u(p)
-
     def _on_recargar_clicked(self):
         """Recarga la playlist actual desde su archivo fuente."""
         if (

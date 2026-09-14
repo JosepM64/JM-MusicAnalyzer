@@ -187,8 +187,3 @@ class DeckControlsMixin:
         if deck_id is not None and self.master:
             self.master.unregister_deck(deck_id)
             self.deck_id = None
-
-    def _close_player(self):
-        """Cierra el reproductor"""
-        self.stop()
-        self.release()

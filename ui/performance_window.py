@@ -42,37 +42,15 @@ if getattr(sys, "frozen", False):
 
 try:
     from core.audio_engine import MasterEngine
-    from core.reader.mp3_reader import MP3Reader
-    from core.writer.tag_writer import TagWriter
-    from services.audio_hardware_service import AudioHardwareService
     from services.metadata_service import MetadataService
     from services.settings_manager import SettingsManager
-    from ui.dialogs.about_dialog import AboutDialog
-    from ui.dialogs.audio_config_dialog import AudioConfigDialog
-    from ui.dialogs.settings_dialog import SettingsDialog
-    from ui.styles import load_audio_devices_from_settings
-    from ui.widgets.audio_engine_player import AudioEnginePlayerWidget
-    from ui.widgets.cover_widget import CoverWidget
-    from ui.widgets.player_widget import PlayerWidget
-    from ui.widgets.playlist_widget import PlaylistWidget
-    from ui.widgets.rating_widget import RatingWidget
 except ImportError:
     import sys
 
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from core.audio_engine import MasterEngine
-    from core.reader.mp3_reader import MP3Reader
-    from services.audio_hardware_service import AudioHardwareService
     from services.metadata_service import MetadataService
     from services.settings_manager import SettingsManager
-    from ui.dialogs.about_dialog import AboutDialog
-    from ui.dialogs.audio_config_dialog import AudioConfigDialog
-    from ui.dialogs.settings_dialog import SettingsDialog
-    from ui.widgets.audio_engine_player import AudioEnginePlayerWidget
-    from ui.widgets.cover_widget import CoverWidget
-    from ui.widgets.player_widget import PlayerWidget
-    from ui.widgets.playlist_widget import PlaylistWidget
-    from ui.widgets.rating_widget import RatingWidget
 
 
 class PerformanceWindow(
@@ -143,8 +121,6 @@ class PerformanceWindow(
         self._fade_current_val = -100.0
         self._fade_step = 0.0
         self._fade_target_val = -100.0
-
-        import time
 
         t0 = time.perf_counter()
 

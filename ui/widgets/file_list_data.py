@@ -7,6 +7,10 @@ from PySide6.QtWidgets import QPushButton, QTableWidgetItem, QWidget
 
 logger = logging.getLogger(__name__)
 
+# Botons 🎧 de pre-escolta dins les cel·les (24x15): el padding: 6px 12px de l'APP_GLOBAL_QSS
+# els deixava 0 px de contingut i el símbol quedava invisible.
+CUE_BTN_QSS = "QPushButton { padding: 0px; font-size: 10px; }"
+
 
 def rating_to_stars(rating):
     if not rating:
@@ -29,9 +33,6 @@ class InteractiveRatingWidget(QWidget):
         self.setFixedSize(70, 15)
         self.setMouseTracking(True)
         self.setStyleSheet("background: transparent;")
-
-    def get_rating(self):
-        return self._rating
 
     def set_rating(self, rating):
         self._rating = rating
@@ -166,9 +167,6 @@ class FileListDataMixin:
         logger.warning(f"[_get_path_at_row] No filepath found at row {row}, col 7")
         return None
 
-    def is_file_duplicate(self, filepath: str) -> bool:
-        return filepath in self._added_paths
-
     def add_file_row(
         self,
         filepath: str,
@@ -188,8 +186,9 @@ class FileListDataMixin:
         if not subfolder:
             subfolder = os.path.dirname(filepath)
 
-        btn = QPushButton("??")
-        btn.setFixedSize(24, 15)
+        btn = QPushButton("🎧")
+        btn.setFixedSize(24, 17)
+        btn.setStyleSheet(CUE_BTN_QSS)
         btn.setToolTip(f"Pre-escoltar: {filename}")
         btn.clicked.connect(lambda checked, fp=filepath: self._toggle_cue_preview(fp))
         self.setCellWidget(row, 0, btn)
@@ -384,7 +383,8 @@ class FileListDataMixin:
                 subfolder = os.path.dirname(filepath)
 
                 btn = QPushButton("🎧")
-                btn.setFixedSize(24, 15)
+                btn.setFixedSize(24, 17)
+                btn.setStyleSheet(CUE_BTN_QSS)
                 btn.setToolTip(f"Pre-escoltar: {filename}")
                 btn.clicked.connect(
                     lambda checked, fp=filepath: self._toggle_cue_preview(fp)

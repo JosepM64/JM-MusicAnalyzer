@@ -3,10 +3,8 @@ import os
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
-    QFileDialog,
     QHBoxLayout,
     QLabel,
-    QMessageBox,
     QPushButton,
     QVBoxLayout,
 )
@@ -104,44 +102,3 @@ class QuickScanDialog(QDialog):
 
     def is_scan_all(self):
         return self._selected_idx == -1
-
-
-def show_tracks_report(parent, title, emoji, tracks, export_prefix, db_manager):
-    """
-    Fase F (v4.5.0) - Mostra informe de pistes (baixa qualitat / corrompudes)
-    amb opció d'exportar a TXT.
-    """
-    if not tracks:
-        QMessageBox.information(parent, title, "No se encontraron pistas.")
-        return
-
-    msg = f"Se encontraron {len(tracks)} pistas:\n\n"
-    for t in tracks[:20]:
-        path = t.get("filepath", "")
-        if "bitrate_real" in t:
-            msg += f"• {os.path.basename(path)} ({t.get('bitrate_real', 0)} kbps)\n"
-        else:
-            duration = t.get("duration", 0)
-            title_t = t.get("title", "Sin título")
-            msg += f"• {os.path.basename(path)}\n   Título: {title_t} | Duración: {duration}s\n"
-
-    if len(tracks) > 20:
-        msg += f"\n... y {len(tracks) - 20} más"
-
-    reply = QMessageBox.question(
-        parent,
-        f"{emoji} {title}",
-        msg + "\n\n¿Quieres exportar esta lista a un archivo TXT?",
-        QMessageBox.Yes | QMessageBox.No,
-        QMessageBox.No,
-    )
-
-    if reply == QMessageBox.Yes:
-        path, _ = QFileDialog.getSaveFileName(
-            parent, "Exportar lista", f"{export_prefix}.txt", "Texto (*.txt)"
-        )
-        if path:
-            if db_manager.export_tracks_to_txt(tracks, path):
-                QMessageBox.information(parent, "Éxito", f"Lista exportada a:\n{path}")
-            else:
-                QMessageBox.critical(parent, "Error", "No se pudo exportar la lista.")

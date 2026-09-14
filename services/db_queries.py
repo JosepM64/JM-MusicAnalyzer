@@ -260,54 +260,6 @@ class DatabaseQueries:
             logger.error(f"Error en búsqueda filtrada: {e}")
             return []
 
-    def get_unique_values_by_folder(
-        self, folder_path: str, column_names: list = None
-    ) -> dict:
-        if column_names is None:
-            column_names = ["genre", "artist", "title"]
-
-        ALLOWED_COLUMNS = {
-            "genre",
-            "artist",
-            "title",
-            "album",
-            "year",
-            "rating",
-            "status",
-        }
-        for col in column_names:
-            if col not in ALLOWED_COLUMNS:
-                logger.error(f"Columna no permitida: {col}")
-                return {}
-
-        try:
-            conn = sqlite3.connect(self.db_path)
-            cursor = conn.cursor()
-
-            normalized_folder = normalize_path(folder_path)
-            if not normalized_folder.endswith("\\"):
-                normalized_folder += "\\"
-
-            normalized_folder_lower = normalized_folder.lower()
-
-            result = {}
-            for column in column_names:
-                query = f"""
-                    SELECT DISTINCT {column} FROM tracks 
-                    WHERE {column} IS NOT NULL AND {column} != '' 
-                      AND LOWER(filepath) LIKE ? 
-                    ORDER BY {column}
-                """
-                cursor.execute(query, (normalized_folder_lower + "%",))
-                rows = cursor.fetchall()
-                result[column] = [row[0] for row in rows if row[0]]
-
-            conn.close()
-            return result
-        except Exception as e:
-            logger.error(f"Error obteniendo valores únicos por carpeta: {e}")
-            return {col: [] for col in column_names}
-
     def find_duplicates(self):
         conn = None
         try:

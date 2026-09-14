@@ -39,8 +39,3 @@ def setup_logging(level=logging.INFO):
     logger.info("========================================")
 
     logging.getLogger("PySide6").setLevel(logging.WARNING)
-
-
-def get_logger(name):
-    """Devuelve un logger con el nombre especificado."""
-    return logging.getLogger(name)

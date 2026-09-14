@@ -35,7 +35,6 @@ except ImportError:
     _HAS_QTMULTIMEDIA = False
 
 try:
-    import numpy as np
     import sounddevice as sd
     import soundfile as sf
 

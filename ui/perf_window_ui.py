@@ -50,10 +50,10 @@ class PerfUIMixin:
     def _apply_dark_theme(self):
         # Normalized per DESIGN.md §5-6, uses tokens, keeps existing palette
         try:
-            from ui.tokens import BG_700, BG_800, BG_900, PRIMARY, STROKE_400, TEXT_80
+            from ui.tokens import BG_700, BG_900, STROKE_400, TEXT_80
             from ui.styles import APP_GLOBAL_QSS
         except Exception:
-            BG_700, BG_900, STROKE_400, TEXT_80, PRIMARY = "#222", "#0f0f0f", "#444", "#e6e6e6", "#0078d4"
+            BG_700, BG_900, STROKE_400, TEXT_80 = "#222", "#0f0f0f", "#444", "#e6e6e6"
             APP_GLOBAL_QSS = ""
         p = self.palette()
         p.setColor(QPalette.ColorRole.Window, QColor(15, 15, 15))  # BG_900
@@ -202,7 +202,6 @@ class PerfUIMixin:
         self.playlist_widget = PlaylistWidget(is_master=True)
         self.playlist_widget.trackLoaded.connect(self._on_track_loaded)
         self.playlist_widget.trackSelected.connect(self._on_track_selected_in_list)
-        self.playlist_widget.startAutomix.connect(self._on_start_automix)
         self.playlist_widget.automixToggled.connect(self._on_automix_toggled)
         self.playlist_widget.ratingChanged.connect(self._on_save_rating)
 
@@ -334,7 +333,6 @@ class PerfUIMixin:
         self.second_playlist_widget.trackSelected.connect(
             self._on_track_selected_in_list
         )
-        # No conectar startAutomix para la segunda lista (solo master)
         self.second_playlist_widget.ratingChanged.connect(self._on_save_rating)
         self.second_playlist_widget.trackAddToMaster.connect(self._add_track_to_master)
         self.second_playlist_widget.batchAddToMaster.connect(self._add_tracks_to_master)
@@ -579,7 +577,7 @@ class PerfUIMixin:
         self.btn_skip.setStyleSheet("""
             QPushButton {
                 background-color: #8a2be2; color: white; font-weight: bold; font-size: 11px;
-                border-radius: 3px;
+                border-radius: 3px; padding: 0px 4px;
             }
             QPushButton:hover { background-color: #9b4de0; }
         """)
@@ -596,7 +594,7 @@ class PerfUIMixin:
         self.btn_crossfader_mixer.setStyleSheet("""
             QPushButton {
                 background-color: #8a2be2; color: white; font-weight: bold; font-size: 11px;
-                border-radius: 3px;
+                border-radius: 3px; padding: 0px 4px;
             }
             QPushButton:hover { background-color: #9b4de0; }
             QPushButton:pressed { background-color: #7a1bd1; }
@@ -612,7 +610,7 @@ class PerfUIMixin:
         self.btn_loop.setStyleSheet("""
             QPushButton {
                 background-color: #333; color: #888; font-weight: bold; font-size: 11px;
-                border-radius: 3px; border: 1px solid #444;
+                border-radius: 3px; border: 1px solid #444; padding: 0px 4px;
             }
             QPushButton:checked {
                 background-color: #00aa00; color: white;
@@ -708,7 +706,7 @@ class PerfUIMixin:
         btn_play = QPushButton("\u25b6")
         btn_play.setFixedSize(22, 20)
         btn_play.setStyleSheet(
-            "font-size: 9px; background: #1a3a1a; color: #4a4; border: 1px solid #2a5a2a; border-radius: 3px;"
+            "font-size: 9px; background: #1a3a1a; color: #4a4; border: 1px solid #2a5a2a; border-radius: 3px; padding: 0px;"
         )
         btn_play.clicked.connect(
             lambda checked=False, l=letter: self._compact_play_pause(l)
@@ -718,7 +716,7 @@ class PerfUIMixin:
         btn_stop = QPushButton("\u23f9")
         btn_stop.setFixedSize(20, 20)
         btn_stop.setStyleSheet(
-            "font-size: 9px; background: #3a1a1a; color: #a44; border: 1px solid #5a2a2a; border-radius: 3px;"
+            "font-size: 9px; background: #3a1a1a; color: #a44; border: 1px solid #5a2a2a; border-radius: 3px; padding: 0px;"
         )
         btn_stop.clicked.connect(lambda checked=False, l=letter: self._compact_stop(l))
         header.addWidget(btn_stop)

@@ -1,0 +1,17 @@
+fix(ui)+chore: botones visibles (CUE graella, compactos DJ) y limpieza de codigo muerto (v4.54.4)
+
+FIXES VISUALES (setFixedSize + padding global del QSS):
+- file_list_data.py: botones CUE de la graella con padding 0 (simbolo invisible), 24x15 -> 24x17 y texto roto "??" -> 🎧 en add_file_row
+- perf_window_ui.py: botones compactos play/stop invisibles (padding 0); SKIP/CROSSFADER/LOOP con padding 0 4px
+- main_window_menu.py: botones carpeta (32x28) y escanear favoritos (42x28) con padding 0
+- main_window.py: _on_search_reset con blockSignals (hacia hasta 4 consultas a la BD)
+
+CODIGO MUERTO ELIMINADO (auditoria AST+grep, 0 referencias en cada caso):
+- modulo ui/widgets/vu_meter.py entero (194 lineas) + su entrada en verify_automatica
+- show_tracks_report (quick_scan_dialog, ~40 lineas)
+- 9 senales nunca emitidas ni conectadas: folderSelected, fileDropped, trackLoadAuto, automixSettingsChanged, startAutomix (+connect), coverSaveRequested/OpenRequested, bookmarkFolderRequested, addToPlaylist/addToCurrentList
+- 2 handlers no-op: _on_header_clicked, _on_seek_pressed (+sus connect)
+- 21 funciones/metodos orfes: get_reader_for_file, ComparisonResult, get_logger, pad_audio, is_supported, extract_from_file, search_by_isrc, is_recursive/set_recursive/delete_nonexistent_folders, _load_suggestions_from_folder, update_suggestions, _get_simulated_vu_levels, _update_transition_timer, _close_player, get_rating, is_file_duplicate, _on_load_playlist_clicked, get_duration_seconds/get_peak/reset_peak, flush (+_dirty), get_unique_values_by_folder
+- ruff: 33 -> 2 avisos (los 2 intencionales: shiboken6 y sonda sounddevice)
+
+Verificacion: verify_automatica 174/0, ruff F limpio, sintaxis OK en los 100 .py

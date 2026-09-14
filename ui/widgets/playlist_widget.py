@@ -77,9 +77,6 @@ class PlaylistWidget(
 
     trackLoaded = _Signal(str, str)
     trackSelected = _Signal(str)
-    trackLoadAuto = _Signal(str)
-    automixSettingsChanged = _Signal(dict)
-    startAutomix = _Signal()
     ratingChanged = _Signal(str, int)
     metadataChanged = _Signal(str, dict)
     playlistReady = _Signal()

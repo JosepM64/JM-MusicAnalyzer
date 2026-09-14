@@ -2,6 +2,29 @@
 
 Tots els canvis significatius en aquest projecte es documenten en aquest fitxer.
 
+## [4.54.4] - 2026-09-14
+
+### Fixes visuales (patrón setFixedSize + padding global del QSS) + limpieza de código muerto
+
+**Bugs visuales**
+- `ui/widgets/file_list_data.py` — botones 🎧 de pre-escucha de la graella: el `padding: 6px 12px` del QSS global dejaba 0 px de contenido (símbolo invisible); ahora `padding: 0px` (constante `CUE_BTN_QSS`), 24×15 → **24×17** (necesitaba 16 px de alto) y el texto roto `"??"` de `add_file_row:191` → **🎧**.
+- `ui/perf_window_ui.py:709,719` — botones ▶/⏹ de la barra COMPACTA del DJ (22×20 / 20×20) quedaban **invisibles** por el mismo motivo → `padding: 0px`.
+- `ui/perf_window_ui.py:578,595,611` — SKIP / CROSSFADER / LOOP → `padding: 0px 4px` (SKIP necesitaba 76 px en 70, LOOP 78 en 70).
+- `ui/main_window_menu.py:67,85` — 📁 (32×28) y 🔍♫ (42×28) → `padding: 0px` (necesitaban 42 px).
+
+**Comportamiento**
+- `ui/main_window.py:200` `_on_search_reset` — los 3 combos se reiniciaban **sin `blockSignals`** → cada setCurrentIndex(0) disparaba `_apply_filters()` y el botón Reset hacía hasta **4 consultas a la BD**; ahora 1.
+
+**Código muerto eliminado** (auditoría AST + grep; 0 referencias en cada caso)
+- `ui/widgets/vu_meter.py` — módulo entero (194 líneas) + su entrada en `verify_automatica.py`.
+- `ui/dialogs/quick_scan_dialog.py` `show_tracks_report` (~40 líneas, nunca llamada; su equivalente vive en `tracks_inspector_dialog.py`).
+- Señales nunca emitidas ni conectadas: `folderSelected`, `fileDropped` (file_tree_widget), `trackLoadAuto`, `automixSettingsChanged`, `startAutomix` (+ su connect en `perf_window_ui.py:205`), `coverSaveRequested`, `coverOpenRequested` (cover_widget: los botones 💾/🔍 ya llaman a sus handlers), `bookmarkFolderRequested` (duplicado muerto de `bookmarkSelected`), `addToPlaylist`, `addToCurrentList` (+ handlers `_add_to_playlist`/`_add_to_current_list`).
+- Handlers no-op: `_on_header_clicked` (file_list_columns) y `_on_seek_pressed` (simple_player_widget) + sus `connect`.
+- 21 funciones/métodos sin referencias: `get_reader_for_file`, `ComparisonResult`, `get_logger`, `pad_audio`, `AudioReader.is_supported`, `extract_from_file`, `search_by_isrc`, `is_recursive`/`set_recursive`/`delete_nonexistent_folders`, `_load_suggestions_from_folder`/`update_suggestions`, `_get_simulated_vu_levels`, `_update_transition_timer`, `_close_player`, `get_rating`, `is_file_duplicate`, `_on_load_playlist_clicked`, `get_duration_seconds`/`get_peak`/`reset_peak`, `flush` (+ estado `_dirty`), `get_unique_values_by_folder` (orfenado en cascada).
+- Ruff: **33 → 2** avisos, los 2 intencionales (`shiboken6` ancla de PyInstaller en `main.py:43`, sonda de `sounddevice` en `audio_hardware_service.py:24`).
+
+**Verificación**: `verify_automatica.py` 174/0 (8 avisos), ruff F limpio, build OK + smoke test.
+
 ## [4.54.3] - 2026-09-14
 
 ### Fix: botó DJ de la pantalla inicial tallava la "J"

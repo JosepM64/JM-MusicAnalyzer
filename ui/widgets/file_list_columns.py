@@ -22,7 +22,6 @@ class FileListColumnsMixin:
         self.horizontalHeader().setVisible(True)
 
         self.itemClicked.connect(self._on_item_clicked)
-        self.verticalHeader().sectionClicked.connect(self._on_header_clicked)
 
         self.setSortingEnabled(True)
         self.horizontalHeader().setSortIndicatorShown(True)
@@ -59,7 +58,7 @@ class FileListColumnsMixin:
 
         # DESIGN.md §8 — tokenized header/row (BG_500 flat dark, PRIMARY 28% #004a80 selected)
         try:
-            from ui.tokens import BG_400, BG_500, BG_600, PRIMARY, STROKE_400, TEXT_100, TEXT_80
+            from ui.tokens import BG_500, BG_600, PRIMARY, STROKE_400, TEXT_100, TEXT_80
 
             self.setStyleSheet(f"""
             QTableWidget {{ background-color: {BG_500}; color: {TEXT_80}; gridline-color: {BG_600}; border: 1px solid {STROKE_400}; font-size: 10px; selection-color: {TEXT_100}; font-family: 'Segoe UI', sans-serif; }}
@@ -86,9 +85,6 @@ class FileListColumnsMixin:
             filepath = self._get_path_at_row(row)
             if filepath:
                 self.fileSelected.emit(filepath)
-
-    def _on_header_clicked(self, logicalIndex):
-        pass
 
     def _on_sort_indicator_changed(self, logicalIndex, order):
         from PySide6.QtCore import QTimer

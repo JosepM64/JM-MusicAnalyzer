@@ -46,12 +46,3 @@ class MusicFile:
     raw_frames: dict[str, Any] = field(default_factory=dict)
     error: str | None = None
     sha256: str | None = None  # Hash para detectar duplicados reales
-
-
-@dataclass
-class ComparisonResult:
-    technical_diffs: dict[str, tuple[Any, Any]]
-    metadata_diffs: dict[str, tuple[str, str]]
-    hash_equal: bool
-    cover_equal: bool
-    is_identical: bool = False

@@ -18,14 +18,6 @@ def resample_audio(
     return soxr.resample(audio_data, source_sr, target_sr)
 
 
-def pad_audio(block: np.ndarray, target_frames: int, channels: int = 2) -> np.ndarray:
-    if len(block) < target_frames:
-        padded = np.zeros((target_frames, channels), dtype=np.float32)
-        padded[: len(block)] = block
-        return padded
-    return block[:target_frames]
-
-
 def calculate_levels(block: np.ndarray) -> tuple:
     rms = np.sqrt(np.mean(block**2))
     current_level = min(rms * RMS_SCALE, 1.0)

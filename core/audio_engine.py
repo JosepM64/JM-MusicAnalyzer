@@ -377,21 +377,9 @@ class Deck:
         """Retorna la duración en samples"""
         return self.total_frames
 
-    def get_duration_seconds(self):
-        """Retorna la duración en segundos"""
-        return self.total_frames / self.samplerate if self.samplerate else 0
-
     def get_level(self):
         """Retorna el nivel actual de audio (0.0-1.0) para VU meter"""
         return self._current_level
-
-    def get_peak(self):
-        """Retorna el nivel pico de audio (0.0-1.0)"""
-        return self._peak_level
-
-    def reset_peak(self):
-        """Resetea el nivel pico"""
-        self._peak_level = 0.0
 
     def set_gain(self, gain_db):
         """Ajusta la ganancia en dB (para ReplayGain)"""
