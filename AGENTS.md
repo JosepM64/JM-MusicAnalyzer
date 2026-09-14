@@ -2,7 +2,7 @@
 
 ## Descripció
 Analitzador de música i eina DJ. Python 3.13 + PySide6.
-- **Versió**: 4.54.2 | **Data**: 2026-09-14 | **Build**: ~211 MB
+- **Versió**: 4.54.3 | **Data**: 2026-09-14 | **Build**: ~211 MB
 
 ## Estructura
 ```
@@ -57,9 +57,9 @@ mutagen, numpy, musicbrainzngs, sounddevice, soundfile, soxr (resampleig), pyaco
 - Taula `tracks` amb indexes sha256, genre, artist, filepath
 
 ## Últimes 3 versions
+- **v4.54.3**: Fix botó `🎧 DJ` de la pantalla inicial — `padding: 0px` + 52→58 px (el padding global del QSS tallava la "J")
 - **v4.54.2**: Fix tema fosc propi — `app.py:_apply_dark_palette()` força paleta fosca (`AlternateBase` inclòs) perquè les files alternes de la graella/arbre no agafin el tema clar de Windows d'un altre PC
 - **v4.54.1**: Impeccable — tokens `ui/tokens.py` + `DESIGN.md`, Manager densitat (filtres 11px/5px, taula 10px/18px), fix DJ velocitat invisible (BPM 24×20 padding), F821 `main_window_scan.py:1`
-- **v4.54.0**: DJ — botó `🔍 Duplicats` a playlist (neteja duplicats de la llista carregada: filepath/SHA256/títol+artista)
 
  Versions anteriors: veure fitxer de versions o git log
 

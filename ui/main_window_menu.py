@@ -181,16 +181,16 @@ class MainWindowMenuMixin:
 
         self.btn_dj_mode = QPushButton("\U0001f3a7 DJ")
         self.btn_dj_mode.setToolTip("Cambiar a Modo DJ (Ctrl+D)")
-        self.btn_dj_mode.setFixedSize(52, 28)
+        self.btn_dj_mode.setFixedSize(58, 28)
         try:
             from ui.tokens import BG_400, PRIMARY, STROKE_400, TEXT_80, TEXT_100
 
             self.btn_dj_mode.setStyleSheet(
-                f"QPushButton {{ font-size: 11px; border: 1px solid {STROKE_400}; border-radius: 3px; background: {BG_400}; color: {TEXT_80}; font-weight: 600; }} QPushButton:hover {{ background: {PRIMARY}; color: {TEXT_100}; border-color: {PRIMARY}; }} QPushButton:focus {{ border: 1px solid #6a1b9a; }}"
+                f"QPushButton {{ font-size: 11px; border: 1px solid {STROKE_400}; border-radius: 3px; background: {BG_400}; color: {TEXT_80}; font-weight: 600; padding: 0px; }} QPushButton:hover {{ background: {PRIMARY}; color: {TEXT_100}; border-color: {PRIMARY}; }} QPushButton:focus {{ border: 1px solid #6a1b9a; }}"
             )
         except Exception:
             self.btn_dj_mode.setStyleSheet(
-                "QPushButton { font-size: 11px; border: 1px solid #444; border-radius: 3px; background: #333; color: #ddd; } QPushButton:hover { background: #0078d4; color: white; }"
+                "QPushButton { font-size: 11px; border: 1px solid #444; border-radius: 3px; background: #333; color: #ddd; padding: 0px; } QPushButton:hover { background: #0078d4; color: white; }"
             )
         self.btn_dj_mode.clicked.connect(self._on_switch_to_performance)
         toolbar.addWidget(self.btn_dj_mode)

@@ -2,6 +2,12 @@
 
 Tots els canvis significatius en aquest projecte es documenten en aquest fitxer.
 
+## [4.54.3] - 2026-09-14
+
+### Fix: botó DJ de la pantalla inicial tallava la "J"
+- `main_window_menu.py:182` — el botó `🎧 DJ` tenia `setFixedSize(52, 28)` i no sobreescrivia el `padding: 6px 12px` del QSS global, que deixava ~26 px útils per al text → es veia "🎧 D".
+- Fix: `padding: 0px` a l'estil propi + amplada 52 → 58 px (marge per si la font canvia en un altre PC). Mateix patró que el fix de velocitat DJ de v4.54.1.
+
 ## [4.54.2] - 2026-09-14
 
 ### Fix: tema fosc propi (en un PC amb Windows en mode clar es veia blanc)
