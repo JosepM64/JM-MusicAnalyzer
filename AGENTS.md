@@ -2,7 +2,7 @@
 
 ## Descripció
 Analitzador de música i eina DJ. Python 3.13 + PySide6.
-- **Versió**: 4.54.5 | **Data**: 2026-09-14 | **Build**: ~211 MB
+- **Versió**: 4.54.6 | **Data**: 2026-09-14 | **Build**: ~211 MB
 
 ## Estructura
 ```
@@ -57,9 +57,9 @@ mutagen, numpy, musicbrainzngs, sounddevice, soundfile, soxr (resampleig), pyaco
 - Taula `tracks` amb indexes sha256, genre, artist, filepath
 
 ## Últimes 3 versions
+- **v4.54.6**: Fix `QMenuBar` blanc en un PC amb Windows en mode clar — el QSS no tenia regles per a la barra de menú i la pintava l'estil natiu amb els colors del sistema; ara `APP_GLOBAL_QSS` la pinta (`BG_900` + `::item:selected` `BG_500`)
 - **v4.54.5**: Fix botons de la pantalla DJ sense símbol (21 botons: barra de la llista, paginació, compactes, LOOP, ❓, ■/🎧 dels decks, 💾/🔍 caràtula) amb el nou helper `ui/styles.icon_btn_qss()` + constants per als que es reassignen en calent; guarda `verify_icon_button_padding()` a `verify_automatica.py` (WARN) perquè no torni a passar
 - **v4.54.4**: Fixes visuals (botons 🎧 de la graella invisibles + text `"??"`, ▶/⏹ compactes DJ invisibles, SKIP/CROSSFADER/LOOP i 📁/🔍♫ al límit) + `blockSignals` a `_on_search_reset` + neteja de codi mort (vu_meter.py sencer, 9 senyals mai emesos, 21 funcions orfes; ruff 33→2)
-- **v4.54.3**: Fix botó `🎧 DJ` de la pantalla inicial — `padding: 0px` + 52→58 px (el padding global del QSS tallava la "J")
 
  Versions anteriors: veure fitxer de versions o git log
 
@@ -101,6 +101,7 @@ mutagen, numpy, musicbrainzngs, sounddevice, soundfile, soxr (resampleig), pyaco
   3. `verify_automatica.py:verify_icon_button_padding()` ho vigila (avís WARN) i resol constants pròpies amb padding (`_ACTION_BTN`, `CUE_BTN_QSS`) per no donar falsos positius
 - **Verificació**: mesurar `sizeHint()` vs `setFixedSize()` amb la **plataforma real de Windows** (en `offscreen` les mètriques són falses: dona OK a botons que a l'app es tallen) + render de la finestra
 - **Relacionat (v4.54.2)**: el tema fosc era dependent del mode de Windows per als widgets que el QSS no cobreix (les files alternes de la graella agafaven `AlternateBase` del sistema) → `app.py:_apply_dark_palette()` fixa la paleta pròpia (Base/AlternateBase/Window/Text/Highlight)
+- **Relacionat (v4.54.6)**: **`QMenuBar` no tenia cap regla al QSS** → en un PC amb Windows en mode clar la barra de menú sortia BLANCA mentre la resta de l'app era fosca (l'estil natiu la pinta amb els colors del sistema i no fa cas de la `QPalette`). Regla: qualsevol widget d'un contenidor natiu (menú, barres, indicadors) ha de tenir la seva pròpia regla al QSS; la paleta sola no basta
 
 ### cleanup_dist.bat vs plugins Qt — pèrdua d'estil visual (RESOLT v4.50.0, 2026-08-24)
 - **Símptoma**: l'EXE obre però sense l'estil fosc (cau a Fusion: files clares il·legibles, combos blanques, aspecte pla) i les caràtules mostren "SIN CARÁTULA"

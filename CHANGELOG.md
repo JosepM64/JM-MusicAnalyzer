@@ -2,6 +2,14 @@
 
 Tots els canvis significatius en aquest projecte es documenten en aquest fitxer.
 
+## [4.54.6] - 2026-09-14
+
+### Fix: la barra de menú (QMenuBar) se veía blanca en un PC con Windows en modo claro
+- **Síntoma** (en un PC nuevo, Windows en modo claro): el resto de la app se veía oscura (barra de herramientas, rejilla, paneles) pero la **barra de menú superior** (Archivo/Editar/Ver/Modo/Eina) salía con fondo **blanco**.
+- **Causa**: `APP_GLOBAL_QSS` estiliza `QMenu` (los desplegables) pero **no tenía ninguna regla para `QMenuBar`**; sin regla propia lo pinta el estilo nativo de Windows con los colores del sistema, que no respetan la `QPalette` propia de la app (`app.py:_apply_dark_palette`).
+- **Fix**: `ui/styles.py` — reglas nuevas para `QMenuBar` (fondo `BG_900`, texto `TEXT_80`, borde inferior `STROKE_400`) y sus ítems (`::item` transparente con padding, `::item:selected` `BG_500`, `::item:pressed` `PRIMARY`).
+- **Verificación**: render de un `QMainWindow` con barra de menú + `APP_GLOBAL_QSS` + la paleta de la app → muestreo de píxeles del fondo: **#0F0F0F** (antes lo pintaba el estilo nativo) y captura visual con los 5 menús legibles.
+
 ## [4.54.5] - 2026-09-14
 
 ### Fix: botones de la pantalla DJ sin símbolo visible + guarda contra regressions

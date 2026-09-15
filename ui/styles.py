@@ -162,6 +162,12 @@ QMenu::item {{ padding: 6px 20px; }}
 QMenu::item:selected {{ background-color: {PRIMARY}; color: {TEXT_100}; }}
 QMenu::item:disabled {{ color: {TEXT_40}; }}
 QMenu::separator {{ height: 1px; background: {STROKE_400}; margin: 4px 8px; }}
+/* QMenuBar: sense regla pròpia l'estil natiu el pinta amb el tema del sistema
+   (blanc en un Windows en mode clar) encara que la paleta de l'app sigui fosca */
+QMenuBar {{ background-color: {BG_900}; color: {TEXT_80}; border-bottom: 1px solid {STROKE_400}; font-family: {FONT_FAMILY}; }}
+QMenuBar::item {{ background: transparent; padding: 5px 10px; }}
+QMenuBar::item:selected {{ background-color: {BG_500}; color: {TEXT_100}; }}
+QMenuBar::item:pressed {{ background-color: {PRIMARY}; color: {TEXT_100}; }}
 
 /* Tables */
 QTableWidget {{ background-color: {BG_800}; color: {TEXT_80}; gridline-color: {BG_600}; font-size: 10px; font-family: {FONT_FAMILY}; }}
