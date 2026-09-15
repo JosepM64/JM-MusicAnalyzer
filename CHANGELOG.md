@@ -2,6 +2,15 @@
 
 Tots els canvis significatius en aquest projecte es documenten en aquest fitxer.
 
+## [4.54.7] - 2026-09-15
+
+### Fix: descàrrega amb URL enganxada — la ruta del fitxer era incorrecta
+- **Símptoma** (usuari): cercant funciona, però «quan enganxes la URL del vídeo no el descarrega»: la descàrrega acabava i l'app no trobava cap fitxer → la graella no s'actualitzava i l'anàlisi posterior no tenia res per analitzar.
+- **Causa** (`plugins/yt_dl/downloader.py`, `DownloadWorker._download_single`): la ruta es construïa a mà amb el títol **cru** (`Path(output_dir) / f"{info['title']}.mp3"`), però **yt-dlp desa amb el nom SANEJAT** per a Windows (cometes `"` → `＂`, dos punts `:` → `：`…). Amb un títol amb caràcters reservats (p.ex. `Gene Krupa "Sing, Sing, Sing"`) la ruta retornada **no existia** → 0 bytes → "no s'ha descarregat" tot i que l'MP3 era al disc.
+- **Fix**: preguntar la ruta a yt-dlp (`requested_downloads[].filepath`, `info['filepath']`, `prepare_filename()` + extensió final) i, si cap existeix, fer servir el fitxer amb l'extensió final creat durant aquesta descàrrega; si no se'n troba cap, s'emet un **error explícit** (abans fallava en silenci).
+- **Millora UX**: enganxar una URL ara deixa el resultat **marcat automàticament** (`_on_search` amb 1 resultat d'URL) i el botó «📥 Descarregar» funciona encara que no s'hagi premut «Cercar» (`_on_download` fa servir la URL del camp de text).
+- **Verificació**: descàrrega real amb una URL de títol problemàtic → ruta retornada **existent** (7.540.605 bytes; MP3 5:27 / 184 kbps / ID3 ✓) i fitxer present al disc amb el nom sanejat; abans retornava una ruta inexistent de 0 bytes.
+
 ## [4.54.6] - 2026-09-14
 
 ### Fix: la barra de menú (QMenuBar) se veía blanca en un PC con Windows en modo claro

@@ -224,6 +224,17 @@ class YouTubeImportDialog(QDialog):
 
     # ── cerca ──────────────────────────────────────────────────────────
 
+    @staticmethod
+    def _es_url(text):
+        """True si el text sembla una URL de YouTube (no una cerca per text)."""
+        t = (text or "").strip().lower()
+        return (
+            t.startswith("http://")
+            or t.startswith("https://")
+            or "youtube.com" in t
+            or "youtu.be" in t
+        )
+
     def _on_search(self):
         query = self.input_search.text().strip()
         if not query:
@@ -233,12 +244,18 @@ class YouTubeImportDialog(QDialog):
         self.btn_search.setEnabled(False)
 
         self.results = search_youtube(query)
+        # Si s'ha enganxat una URL, el resultat ja queda marcat: es pot descarregar
+        # directament sense haver de clicar la casella
+        query_es_url = self._es_url(query)
 
         self.table.setRowCount(len(self.results))
         for i, r in enumerate(self.results):
             chk = QTableWidgetItem()
             chk.setFlags(Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled)
-            chk.setCheckState(Qt.CheckState.Unchecked)
+            if query_es_url and len(self.results) == 1:
+                chk.setCheckState(Qt.CheckState.Checked)
+            else:
+                chk.setCheckState(Qt.CheckState.Unchecked)
             self.table.setItem(i, 0, chk)
             self.table.setItem(i, 1, QTableWidgetItem(r["title"]))
             self.table.setItem(i, 2, QTableWidgetItem(r["duration"]))
@@ -382,8 +399,14 @@ class YouTubeImportDialog(QDialog):
                 urls.append(self.results[i]["url"])
 
         if not urls:
-            self.lbl_status.setText("Marca almenys un resultat per descarregar")
-            return
+            # Potser s'ha enganxat la URL i no s'ha premut Cercar: es descarrega
+            # directament en lloc de no fer res
+            text = self.input_search.text().strip()
+            if self._es_url(text):
+                urls = [text]
+            else:
+                self.lbl_status.setText("Marca almenys un resultat per descarregar")
+                return
 
         self._stop_preview_internal()
 

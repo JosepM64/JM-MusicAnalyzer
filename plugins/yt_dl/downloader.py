@@ -3,6 +3,7 @@
 import logging
 import os
 import sys
+import time
 from pathlib import Path
 
 import yt_dlp
@@ -129,6 +130,11 @@ class DownloadWorker(QThread):
                 result_path = self._download_single(url, ffmpeg)
                 if result_path:
                     downloaded.append(result_path)
+                else:
+                    self.error.emit(
+                        f"No s'ha trobat el fitxer descarregat de {url} "
+                        f"(potser ha fallat l'extracció d'àudio)"
+                    )
             except Exception as e:
                 self.error.emit(f"Error descarregant {url}: {e}")
 
@@ -136,6 +142,7 @@ class DownloadWorker(QThread):
 
     def _download_single(self, url, ffmpeg):
         output_pattern = str(Path(self.output_dir) / "%(title)s.%(ext)s")
+        inici = time.time()
 
         ydl_opts = {
             "format": "bestaudio/best",
@@ -155,10 +162,45 @@ class DownloadWorker(QThread):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             try:
                 info = ydl.extract_info(url, download=True)
-                if info and info.get("title"):
-                    return str(Path(self.output_dir) / f"{info['title']}.{self.audio_format}")
             except Exception as e:
                 raise RuntimeError(str(e)) from e
+
+            if not info:
+                return None
+
+            # yt-dlp desa el fitxer amb el nom SANEJAT (p.ex. '"' -> '＂', ':' -> '：'),
+            # així que no es pot reconstruir a mà des del títol cru: cal preguntar-li
+            # a ell o, si falla, mirar el fitxer creat més recentment.
+            candidats = []
+            for req in info.get("requested_downloads") or []:
+                if req.get("filepath"):
+                    candidats.append(Path(req["filepath"]))
+            for clau in ("filepath", "_filename"):
+                if info.get(clau):
+                    candidats.append(Path(info[clau]))
+            try:
+                preparat = Path(ydl.prepare_filename(info))
+                candidats.append(preparat.with_suffix(f".{self.audio_format}"))
+                candidats.append(preparat)
+            except Exception:
+                pass
+
+            for candidat in candidats:
+                if candidat.exists():
+                    return str(candidat)
+
+        # Fallback: el fitxer amb la extensió final creat durant aquesta descàrrega
+        try:
+            recents = sorted(
+                Path(self.output_dir).glob(f"*.{self.audio_format}"),
+                key=lambda p: p.stat().st_mtime,
+                reverse=True,
+            )
+            for fitxer in recents:
+                if fitxer.stat().st_mtime >= inici - 5:
+                    return str(fitxer)
+        except OSError:
+            pass
         return None
 
     def _on_progress(self, d):

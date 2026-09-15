@@ -2,7 +2,7 @@
 
 ## Descripció
 Analitzador de música i eina DJ. Python 3.13 + PySide6.
-- **Versió**: 4.54.6 | **Data**: 2026-09-14 | **Build**: ~211 MB
+- **Versió**: 4.54.7 | **Data**: 2026-09-15 | **Build**: ~211 MB
 
 ## Estructura
 ```
@@ -57,9 +57,9 @@ mutagen, numpy, musicbrainzngs, sounddevice, soundfile, soxr (resampleig), pyaco
 - Taula `tracks` amb indexes sha256, genre, artist, filepath
 
 ## Últimes 3 versions
+- **v4.54.7**: Fix descàrrega YouTube amb URL enganxada — `DownloadWorker._download_single` retornava la ruta construïda amb el títol CRU i yt-dlp desa amb el nom SANEJAT (`"` → `＂`) → la ruta no existia i semblava que no s'hagués descarregat; ara es pregunta la ruta a yt-dlp + fallback al fitxer creat; enganxar una URL deixa el resultat marcat i «Descarregar» funciona sense prémer «Cercar»
 - **v4.54.6**: Fix `QMenuBar` blanc en un PC amb Windows en mode clar — el QSS no tenia regles per a la barra de menú i la pintava l'estil natiu amb els colors del sistema; ara `APP_GLOBAL_QSS` la pinta (`BG_900` + `::item:selected` `BG_500`)
 - **v4.54.5**: Fix botons de la pantalla DJ sense símbol (21 botons: barra de la llista, paginació, compactes, LOOP, ❓, ■/🎧 dels decks, 💾/🔍 caràtula) amb el nou helper `ui/styles.icon_btn_qss()` + constants per als que es reassignen en calent; guarda `verify_icon_button_padding()` a `verify_automatica.py` (WARN) perquè no torni a passar
-- **v4.54.4**: Fixes visuals (botons 🎧 de la graella invisibles + text `"??"`, ▶/⏹ compactes DJ invisibles, SKIP/CROSSFADER/LOOP i 📁/🔍♫ al límit) + `blockSignals` a `_on_search_reset` + neteja de codi mort (vu_meter.py sencer, 9 senyals mai emesos, 21 funcions orfes; ruff 33→2)
 
  Versions anteriors: veure fitxer de versions o git log
 
