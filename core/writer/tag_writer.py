@@ -107,19 +107,29 @@ class TagWriter:
                     tags.add(TXXX(desc="ISRC", text=[str(isrc)]))
 
             # --- 4. Carátula (APIC) ---
-            cover_data = data.get("cover_data")
-            if cover_data:
-                # Borrar carátulas anteriores
+            if data.get("cover_removed"):
                 tags.delall("APIC")
-                tags.add(
-                    APIC(
-                        encoding=3,  # UTF-8
-                        mime="image/jpeg",  # Asumimos jpeg para portadas online
-                        type=3,  # Portada frontal
-                        desc="Front Cover",
-                        data=cover_data,
+            else:
+                cover_data = data.get("cover_data")
+                if cover_data:
+                    # Borrar carátulas anteriores
+                    tags.delall("APIC")
+                    mime = data.get("cover_mime") or "image/jpeg"
+                    if mime not in ("image/jpeg", "image/png"):
+                        # Detectar por cabecera por si viene sin mime
+                        if cover_data[:8] == b"\x89PNG\r\n\x1a\n":
+                            mime = "image/png"
+                        else:
+                            mime = "image/jpeg"
+                    tags.add(
+                        APIC(
+                            encoding=3,  # UTF-8
+                            mime=mime,
+                            type=3,  # Portada frontal
+                            desc="Front Cover",
+                            data=cover_data,
+                        )
                     )
-                )
 
             # Guardar con ID3v2.3 para máxima compatibilidad
             tags.save(self.filepath, v2_version=3)

@@ -439,6 +439,10 @@ class FileListActionsMixin:
         if self._current_preview_path == filepath:
             self._stop_cue_preview()
             return
+        # Avvisa al bus global per aturar altres CUEs (editor, DJ, decks)
+        from core.cue_bus import get_cue_bus
+
+        get_cue_bus().cue_started.emit(filepath)
         self._stop_cue_preview()
         self._current_preview_path = filepath
         btn = self._cue_buttons.get(filepath)
@@ -459,6 +463,10 @@ class FileListActionsMixin:
         self._cue_player.stop()
         self._current_preview_path = None
         self.cuePreviewChanged.emit("")
+        # Avvisa al bus que la CUE de l'editor s'ha aturat
+        from core.cue_bus import get_cue_bus
+
+        get_cue_bus().cue_stopped.emit()
 
     def _on_cue_state_changed(self, state):
         if state == 0 and self._current_preview_path:
@@ -468,6 +476,17 @@ class FileListActionsMixin:
                 btn.setStyleSheet("")
             self._current_preview_path = None
             self.cuePreviewChanged.emit("")
+
+    # ── Handlers del bus global de CUE (exclusió mutua amb DJ i decks) ──
+    def _on_global_cue_started(self, filepath: str):
+        """Una altra CUE ha començat globalment. Atura la nostra si és diferent."""
+        if self._current_preview_path and self._current_preview_path != filepath:
+            self._stop_cue_preview()
+
+    def _on_global_cue_stopped(self):
+        """Totes les CUEs s'han aturat globalment (canvi de mode)."""
+        if self._current_preview_path:
+            self._stop_cue_preview()
 
     def _get_display_for_filepath(self, filepath):
         for row in range(self.rowCount()):

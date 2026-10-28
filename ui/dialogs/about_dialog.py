@@ -14,12 +14,12 @@ from PySide6.QtWidgets import (
 try:
     import JM_MusicAnalizer
 
-    __version__ = getattr(JM_MusicAnalizer, "APP_VERSION", "4.43.0")
+    __version__ = getattr(JM_MusicAnalizer, "APP_VERSION", "4.54.17")
 
     if not __version__ or __version__.startswith("${"):
-        __version__ = "4.43.0"
+        __version__ = "4.54.17"
 except (ImportError, ModuleNotFoundError):
-    __version__ = "4.43.0"
+    __version__ = "4.54.17"
 
 
 class AboutDialog(QDialog):

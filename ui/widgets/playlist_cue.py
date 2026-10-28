@@ -2,9 +2,10 @@ import logging
 import os
 import typing
 
-from PySide6.QtCore import QUrl, Qt
+from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QBrush, QColor
 
+from core.cue_bus import get_cue_bus
 from ui.widgets.row_preview_player import RowPreviewPlayer
 
 logger = logging.getLogger(__name__)
@@ -126,6 +127,8 @@ class PlaylistCUEMixin:
         ):
             self.stop_cue()
         else:
+            # Avvisa al bus global per aturar altres CUEs (editor, altres llistes, decks)
+            get_cue_bus().cue_started.emit(path)
             self.cuePlayStarted.emit()
 
             if self._current_preview_row >= 0:
@@ -152,6 +155,8 @@ class PlaylistCUEMixin:
         if self.cue_player:
             self.cue_player.stop()
         self.cue_progress.setValue(0)
+        # Avvisa al bus que la CUE de questa llista s'ha aturat
+        get_cue_bus().cue_stopped.emit()
 
     def _find_row_by_filepath(self, filepath):
         """Encuentra la fila actual que contiene el archivo (teniendo en cuenta ordenación)."""
@@ -212,3 +217,14 @@ class PlaylistCUEMixin:
                         self.cue_progress.setValue(0)
             except Exception:
                 pass
+
+    # ── Handlers del bus global de CUE (exclusió mutua amb editor i decks) ──
+    def _on_global_cue_started(self, filepath: str):
+        """Una altra CUE ha començat globalment. Atura la nostra si és diferent."""
+        if self._current_preview_path and self._current_preview_path != filepath:
+            self.stop_cue()
+
+    def _on_global_cue_stopped(self):
+        """Totes les CUEs s'han aturat globalment (canvi de mode)."""
+        if self._current_preview_row >= 0:
+            self.stop_cue()

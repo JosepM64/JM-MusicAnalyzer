@@ -245,7 +245,7 @@ class PerfUIMixin:
         info_layout.setSpacing(4)
 
         # Portada
-        self.cover_view = CoverWidget(size=160)
+        self.cover_view = CoverWidget(size=160, editable=False)
         info_layout.addWidget(self.cover_view, 0, Qt.AlignmentFlag.AlignCenter)
 
         # Título y artista
@@ -281,7 +281,7 @@ class PerfUIMixin:
         # Campos de edición — normalized dark per DESIGN.md §5 (was white #fff break)
         self.edit_title = QLineEdit()
         self.edit_title.setPlaceholderText("Título")
-        self.edit_title.setMaximumHeight(20)
+        self.edit_title.setMaximumHeight(24)
         self.edit_title.setStyleSheet(
             "color: #fff; background-color: #333; border: 1px solid #444; border-radius: 3px; font-size: 10px; padding: 2px 4px; font-family: 'Segoe UI', sans-serif;"
         )
@@ -289,7 +289,7 @@ class PerfUIMixin:
 
         self.edit_artist = QLineEdit()
         self.edit_artist.setPlaceholderText("Artista")
-        self.edit_artist.setMaximumHeight(20)
+        self.edit_artist.setMaximumHeight(24)
         self.edit_artist.setStyleSheet(
             "color: #fff; background-color: #333; border: 1px solid #444; border-radius: 3px; font-size: 10px; padding: 2px 4px; font-family: 'Segoe UI', sans-serif;"
         )
@@ -297,7 +297,7 @@ class PerfUIMixin:
 
         self.edit_genre = QLineEdit()
         self.edit_genre.setPlaceholderText("Género")
-        self.edit_genre.setMaximumHeight(20)
+        self.edit_genre.setMaximumHeight(24)
         self.edit_genre.setStyleSheet(
             "color: #fff; background-color: #333; border: 1px solid #444; border-radius: 3px; font-size: 10px; padding: 2px 4px; font-family: 'Segoe UI', sans-serif;"
         )
@@ -876,14 +876,16 @@ class PerfUIMixin:
         dlg.exec()
 
     def _show_dj_help(self):
+        from ui.i18n_help import help_text as _h
+
         menu = QMenu(self)
         menu.setStyleSheet(
             "QMenu { background: #2b2b2b; color: #e0e0e0; border: 1px solid #555; padding: 4px; } QMenu::item { padding: 6px 20px; } QMenu::item:selected { background: #0078d4; }"
         )
-        act_playback = menu.addAction("Reproducción y Decks")
-        act_crossfader = menu.addAction("Crossfader y Mezcla")
-        act_playlist = menu.addAction("Playlists")
-        act_audio = menu.addAction("Audio y CUE")
+        act_playback = menu.addAction(_h("d_playback"))
+        act_crossfader = menu.addAction(_h("d_mix"))
+        act_playlist = menu.addAction(_h("d_playlists"))
+        act_audio = menu.addAction(_h("d_audio"))
 
         action = menu.exec_(
             self.mapToGlobal(
@@ -892,50 +894,19 @@ class PerfUIMixin:
         )
 
         if action == act_playback:
-            self._show_help_dialog(
-                "Reproducción y Decks",
-                "<b>Deck A / Deck B</b>: Dos reproductores independientes. Carga canciones desde las playlists.<br><br>"
-                "<b>⏭ SKIP</b>: Salta inmediatamente a la siguiente canción sin esperar fade.<br><br>"
-                "<b>🔁 LOOP</b>: Activa loop al final de la canción actual para extenderla.<br><br>"
-                "<b>⏭️ MEZCLAR SIGUIENTE YA</b>: Inicia la transición al siguiente tema inmediatamente.<br><br>"
-                "<b>Automix</b>: Reproducción automática con crossfade entre pistas consecutivas.<br><br>"
-                "<b>🗔 COMPACT</b> (o tecla Espacio): Oculta los platos y mixer para ver más lista. "
-                "Aparece una barra compacta con controles esenciales: play/pause, stop, información de pista, "
-                "barra de progreso, volumen y crossfader interactivo.",
-            )
+            self._show_help_dialog(_h("d_playback"), _h("h_d_playback"))
         elif action == act_crossfader:
-            self._show_help_dialog(
-                "Crossfader y Mezcla",
-                "<b>Crossfader</b>: Desliza para mezclar entre Deck A (izquierda) y Deck B (derecha).<br><br>"
-                "<b>Fade Time</b>: Ajusta la velocidad del crossfade automático (0.5s - 10s).<br><br>"
-                "<b>Vol Master</b>: Control de volumen general. El botón 100% resetea sin ganancia extra.<br><br>"
-                "<b>CLIP</b>: Indicador de pico de señal. Si se ilumina, reduce el volumen master.<br><br>"
-                "<b>VU Meters</b>: Barras de nivel de señal para cada deck.",
-            )
+            self._show_help_dialog(_h("d_mix"), _h("h_d_mix"))
         elif action == act_playlist:
-            self._show_help_dialog(
-                "Playlists",
-                "<b>📂 Cargar</b>: Carga una playlist desde archivo M3U/M3U8 o escanea una carpeta.<br><br>"
-                "<b>💾 Guardar</b>: Guarda la playlist actual como M3U.<br><br>"
-                "<b>📋 LISTA 2</b>: Activa/desactiva una segunda lista independiente para el Deck B.<br><br>"
-                "<b>CUE (🎧)</b>: Pre-escucha una pista por auriculares sin enviarla a los altavoces.<br><br>"
-                "<b>Vol CUE</b>: Control de volumen independiente para la pre-escucha.<br><br>"
-                "<b>Rating</b>: Puntuación por estrellas en cada fila. Se guarda en la BD automáticamente.<br><br>"
-                "<b>Arrastrar</b>: Reordena pistas arrastrando filas dentro de la lista.",
-            )
+            self._show_help_dialog(_h("d_playlists"), _h("h_d_playlists"))
         elif action == act_audio:
-            self._show_help_dialog(
-                "Audio y CUE",
-                "<b>🎧 CONFIG AUDIO</b>: Configura los dispositivos de salida (Master y CUE/auriculares).<br><br>"
-                "<b>📢 Master</b>: Salida principal (altavoces/amplificadores).<br><br>"
-                "<b>🎧 CUE</b>: Salida para auriculares (pre-escucha). Permite escuchar antes de mezclar.<br><br>"
-                "<b>🔄 Crossfader</b>: Transición suave entre Deck A y Deck B. Desliza para mezclar.<br><br>"
-                "<b>⚙️ Ajustes</b>: Configuración general de la aplicación.",
-            )
+            self._show_help_dialog(_h("d_audio"), _h("h_d_audio"))
 
     def _show_help_dialog(self, title, html):
+        from ui.i18n_help import help_prefix
+
         dlg = QDialog(self)
-        dlg.setWindowTitle(f"Ayuda - {title}")
+        dlg.setWindowTitle(f"{help_prefix()} - {title}")
         dlg.setFixedSize(420, 380)
         dlg.setStyleSheet("QDialog { background: #2b2b2b; }")
         layout = QVBoxLayout(dlg)

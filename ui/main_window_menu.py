@@ -4,12 +4,12 @@ import os
 from PySide6.QtCore import QPoint, Qt
 from PySide6.QtWidgets import (
     QComboBox,
+    QHBoxLayout,
     QLabel,
     QLineEdit,
     QMenu,
     QProgressBar,
     QPushButton,
-    QSizePolicy,
     QSlider,
     QSplitter,
     QToolBar,
@@ -195,6 +195,38 @@ class MainWindowMenuMixin:
         self.btn_dj_mode.clicked.connect(self._on_switch_to_performance)
         toolbar.addWidget(self.btn_dj_mode)
 
+        self.btn_audio_main = QPushButton("🎧")
+        self.btn_audio_main.setFixedSize(28, 28)
+        self.btn_audio_main.setToolTip("Configurar audio")
+        try:
+            from ui.tokens import BG_400, PRIMARY, STROKE_400, TEXT_80, TEXT_100
+
+            self.btn_audio_main.setStyleSheet(
+                f"QPushButton {{ font-size: 13px; border: 1px solid {STROKE_400}; border-radius: 3px; background: {BG_400}; color: {TEXT_80}; padding: 0px; }} QPushButton:hover {{ background: {PRIMARY}; color: {TEXT_100}; }} QPushButton:focus {{ border: 1px solid #6a1b9a; }}"
+            )
+        except Exception:
+            self.btn_audio_main.setStyleSheet(
+                "QPushButton { font-size: 13px; border: 1px solid #444; border-radius: 3px; background: #333; color: #ddd; padding: 0px; } QPushButton:hover { background: #0078d4; color: white; }"
+            )
+        self.btn_audio_main.clicked.connect(self._on_audio_config)
+        toolbar.addWidget(self.btn_audio_main)
+
+        self.btn_settings_main = QPushButton("⚙")
+        self.btn_settings_main.setFixedSize(28, 28)
+        self.btn_settings_main.setToolTip("Ajustes")
+        try:
+            from ui.tokens import BG_400, PRIMARY, STROKE_400, TEXT_80, TEXT_100
+
+            self.btn_settings_main.setStyleSheet(
+                f"QPushButton {{ font-size: 13px; border: 1px solid {STROKE_400}; border-radius: 3px; background: {BG_400}; color: {TEXT_80}; padding: 0px; }} QPushButton:hover {{ background: {PRIMARY}; color: {TEXT_100}; }} QPushButton:focus {{ border: 1px solid #6a1b9a; }}"
+            )
+        except Exception:
+            self.btn_settings_main.setStyleSheet(
+                "QPushButton { font-size: 13px; border: 1px solid #444; border-radius: 3px; background: #333; color: #ddd; padding: 0px; } QPushButton:hover { background: #0078d4; color: white; }"
+            )
+        self.btn_settings_main.clicked.connect(self._on_open_settings)
+        toolbar.addWidget(self.btn_settings_main)
+
         btn_help = QPushButton("?")
         btn_help.setFixedSize(28, 28)
         btn_help.setToolTip("Ayuda rápida (F1)")
@@ -211,18 +243,32 @@ class MainWindowMenuMixin:
         btn_help.clicked.connect(self._show_help_menu)
         toolbar.addWidget(btn_help)
 
-        spacer = QWidget()
-        spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        toolbar.addWidget(spacer)
+        # Labels de info (tracks + cores) — fora del QToolBar per evitar overflow "..."
+        # abans eren dins toolbar i quedaven amagats quan la barra no cabia
+        self.lbl_tracks = QLabel("♫ --")
+        self.lbl_tracks.setToolTip("Cançons indexades a la base de dades")
+        try:
+            from ui.tokens import TEXT_60
+
+            self.lbl_tracks.setStyleSheet(f"color: {TEXT_60}; font-size: 11px; font-weight: 600; padding: 0 6px;")
+        except Exception:
+            self.lbl_tracks.setStyleSheet("color: #a0a0a0; font-size: 11px; font-weight: 600; padding: 0 6px;")
 
         self.lbl_cores = QLabel(f"{self._num_cores}/{self._total_cores}")
         self.lbl_cores.setToolTip(
             f"Cores usados: {self._num_cores} de {self._total_cores}"
         )
         self._update_cores_label_style()
-        toolbar.addWidget(self.lbl_cores)
 
-        main_layout.addWidget(toolbar)
+        # Contenidor superior: toolbar + labels a la dreta (fora de l'overflow)
+        top_bar = QWidget()
+        top_layout = QHBoxLayout(top_bar)
+        top_layout.setContentsMargins(0, 0, 0, 0)
+        top_layout.setSpacing(6)
+        top_layout.addWidget(toolbar, 1)
+        top_layout.addWidget(self.lbl_tracks, 0)
+        top_layout.addWidget(self.lbl_cores, 0)
+        main_layout.addWidget(top_bar)
 
         self.splitter = QSplitter(Qt.Orientation.Horizontal)
 
@@ -261,13 +307,44 @@ class MainWindowMenuMixin:
 
         self._setup_menu_bar()
         self._setup_status_bar()
+        # comptador BD — actualitza després d'init (DB ja disponible)
+        try:
+            self._update_tracks_count()
+        except Exception:
+            pass
 
     def _on_toggle_folder_tree(self, checked):
         self.file_tree.setVisible(checked)
         if checked:
+            # Recarregar per recollir favorits afegits amb +⭐ mentre era ocult,
+            # i per no mostrar mai el panell buit de la foto.
+            try:
+                if self.file_tree.topLevelItemCount() <= 1:
+                    self._refresh_folder_tree()
+            except Exception:
+                pass
             self.splitter.setSizes([200, 400, 320])
         else:
             self.splitter.setSizes([0, 600, 320])
+
+    def _on_audio_config(self):
+        from ui.dialogs.audio_config_dialog import AudioConfigDialog
+
+        dlg = AudioConfigDialog(self)
+        if dlg.exec():
+            cfg = dlg.get_config()
+            try:
+                if cfg["master"]:
+                    self.player_widget.setAudioDevice(cfg["master"])
+                if cfg["cue"]:
+                    self.player_widget.setCueAudioDevice(cfg["cue"])
+            except Exception:
+                pass
+
+    def _on_open_settings(self):
+        from ui.dialogs.settings_dialog import SettingsDialog
+
+        SettingsDialog(self).exec()
 
     def _update_cores_label_style(self):
         ratio = self._num_cores / self._total_cores if self._total_cores > 0 else 0
@@ -281,52 +358,74 @@ class MainWindowMenuMixin:
             f"color: {color}; font-size: 11px; font-weight: bold; padding: 0 4px;"
         )
 
+    def _update_tracks_count(self):
+        try:
+            count = 0
+            if hasattr(self, "db_manager") and self.db_manager:
+                count = self.db_manager.get_track_count()
+            elif hasattr(self, "db") and self.db:
+                # fallback via get_db()
+                from services.db import get_db
+
+                count = get_db().get_track_count()
+            # format amb separador
+            txt = f"{count:,}".replace(",", ".") if count else "0"
+            self.lbl_tracks.setText(f"\u266b {txt}")
+            self.lbl_tracks.setToolTip(f"{count} cançons indexades a la base de dades")
+        except Exception:
+            try:
+                self.lbl_tracks.setText("\u266b --")
+            except Exception:
+                pass
+
     def _setup_menu_bar(self):
+        from ui.i18n_menu import menu_text as _
+
         menu_bar = self.menuBar()
 
-        file_menu = menu_bar.addMenu("Archivo")
-        act_scan = file_menu.addAction("Escanear Carpeta...")
+        file_menu = menu_bar.addMenu(_("menu_file"))
+        act_scan = file_menu.addAction(_("scan_folder"))
         act_scan.triggered.connect(lambda: self._on_scan_folder(recursive=True))
-        act_quick = file_menu.addAction("Escaneo Rapido")
+        act_quick = file_menu.addAction(_("quick_scan"))
         act_quick.triggered.connect(self._on_quick_scan)
         file_menu.addSeparator()
-        act_exit = file_menu.addAction("Salir")
+        act_exit = file_menu.addAction(_("exit"))
         act_exit.triggered.connect(self.close)
 
-        edit_menu = menu_bar.addMenu("Editar")
-        act_force = edit_menu.addAction("Forzar Lectura Metadata")
+        edit_menu = menu_bar.addMenu(_("menu_edit"))
+        act_force = edit_menu.addAction(_("force_read"))
         act_force.triggered.connect(self._on_force_read_selected)
         edit_menu.addSeparator()
-        act_clear = edit_menu.addAction("Limpiar Base de Datos")
+        act_clear = edit_menu.addAction(_("clear_db"))
         act_clear.triggered.connect(self._on_clear_database)
-        act_optimize = edit_menu.addAction("Optimizar Base de Datos")
+        act_optimize = edit_menu.addAction(_("optimize_db"))
         act_optimize.triggered.connect(self._on_optimize_database)
-        act_del_nonexist = edit_menu.addAction("Eliminar Pistas Inexistentes")
+        act_del_nonexist = edit_menu.addAction(_("del_nonexist"))
         act_del_nonexist.triggered.connect(self._on_delete_nonexistent_tracks)
-        act_rebuild = edit_menu.addAction("Reconstruir Base de Datos")
+        act_rebuild = edit_menu.addAction(_("rebuild_db"))
         act_rebuild.triggered.connect(self._on_rebuild_database)
         edit_menu.addSeparator()
-        act_backup = edit_menu.addAction("Copia de Seguridad")
+        act_backup = edit_menu.addAction(_("backup_db"))
         act_backup.triggered.connect(self._on_backup_database)
-        act_restore = edit_menu.addAction("Restaurar Copia de Seguridad")
+        act_restore = edit_menu.addAction(_("restore_db"))
         act_restore.triggered.connect(self._on_restore_database)
 
-        view_menu = menu_bar.addMenu("Ver")
-        act_low = view_menu.addAction("Pistas de Baja Calidad...")
+        view_menu = menu_bar.addMenu(_("menu_view"))
+        act_low = view_menu.addAction(_("low_quality"))
         act_low.triggered.connect(self._on_show_low_quality)
-        act_corrupt = view_menu.addAction("Pistas Corruptas...")
+        act_corrupt = view_menu.addAction(_("corrupted"))
         act_corrupt.triggered.connect(self._on_show_corrupted)
-        act_dup = view_menu.addAction("Archivos Duplicados")
+        act_dup = view_menu.addAction(_("duplicates"))
         act_dup.triggered.connect(self._on_show_duplicates)
-        act_dup_fav = view_menu.addAction("Duplicados en Favoritos")
+        act_dup_fav = view_menu.addAction(_("duplicates_fav"))
         act_dup_fav.triggered.connect(self._on_duplicates_in_all_favorites)
 
-        mode_menu = menu_bar.addMenu("Modo")
-        act_perf = mode_menu.addAction("Cambiar a Modo DJ")
+        mode_menu = menu_bar.addMenu(_("menu_mode"))
+        act_perf = mode_menu.addAction(_("to_dj"))
         act_perf.triggered.connect(self._on_switch_to_performance)
 
-        tools_menu = menu_bar.addMenu("Eina")
-        act_ytdl = tools_menu.addAction("📥 Importar de YouTube")
+        tools_menu = menu_bar.addMenu(_("menu_tools"))
+        act_ytdl = tools_menu.addAction(_("import_yt"))
         act_ytdl.triggered.connect(self._on_import_youtube)
 
     def _setup_status_bar(self):
@@ -350,6 +449,8 @@ class MainWindowMenuMixin:
         self.statusBar().showMessage("Listo", 3000)
 
     def _show_help_menu(self):
+        from ui.i18n_help import help_text as _h
+
         menu = QMenu(self)
         try:
             from ui.tokens import BG_500, PRIMARY, STROKE_400, TEXT_80, TEXT_100
@@ -362,12 +463,12 @@ class MainWindowMenuMixin:
                 "QMenu { background: #2b2b2b; color: #e0e0e0; border: 1px solid #444; padding: 4px; } QMenu::item { padding: 6px 20px; } QMenu::item:selected { background: #0078d4; }"
             )
 
-        act_db = menu.addAction("Base de Datos")
-        act_filters = menu.addAction("Filtros y Búsqueda")
-        act_player = menu.addAction("Reproductor")
-        act_metadata = menu.addAction("Metadatos")
-        act_gestion = menu.addAction("Gestión Archivos")
-        act_reports = menu.addAction("Informes")
+        act_db = menu.addAction(_h("m_db"))
+        act_filters = menu.addAction(_h("m_filters"))
+        act_player = menu.addAction(_h("m_player"))
+        act_metadata = menu.addAction(_h("m_metadata"))
+        act_gestion = menu.addAction(_h("m_files"))
+        act_reports = menu.addAction(_h("m_reports"))
 
         action = menu.exec_(
             self.mapToGlobal(
@@ -376,65 +477,24 @@ class MainWindowMenuMixin:
         )
 
         if action == act_db:
-            self._show_help_dialog(
-                "Base de Datos",
-                "<b>Limpiar</b>: Elimina todas las pistas de la BD. Los archivos no se borran del disco.<br><br>"
-                "<b>Optimizar</b>: Compacta la BD (VACUUM) y actualiza estadísticas. Muestra MB liberados.<br><br>"
-                "<b>Eliminar Inexistentes</b>: Borra de la BD las pistas cuyo archivo ya no existe en disco.<br><br>"
-                "<b>Reconstruir</b>: Re-escanea pistas con datos incompletos (título, artista, duración o bitrate vacíos).<br><br>"
-                "<b>Copia de Seguridad</b>: Guarda una copia de la BD con timestamp en backups/.<br><br>"
-                "<b>Restaurar Copia</b>: Reemplaza la BD actual por una copia de seguridad anterior.",
-            )
+            self._show_help_dialog(_h("m_db"), _h("h_db"))
         elif action == act_filters:
-            self._show_help_dialog(
-                "Filtros y Búsqueda",
-                "<b>Estado / Género / Rating</b>: Combos para filtrar pistas en la tabla.<br><br>"
-                "<b>Buscar</b>: Busca por texto (artista, título, género). Pulsa Enter.<br><br>"
-                "<b>Reset</b>: Limpia todos los filtros y muestra todas las pistas.<br><br>"
-                "<b>Árbol de carpetas</b>: Clic en una carpeta para ver solo sus pistas.",
-            )
+            self._show_help_dialog(_h("m_filters"), _h("h_filters"))
         elif action == act_player:
-            self._show_help_dialog(
-                "Reproductor",
-                "<b>Play/Pause</b>: Reproduce o pausa la canción seleccionada.<br><br>"
-                "<b>⏮ / ⏭</b>: Canción anterior/siguiente. Se reproduce automáticamente.<br><br>"
-                "<b>CUE (Pre-escucha)</b>: Botón para pre-escuchar por auriculares sin reproducir por los altavoces.<br><br>"
-                "<b>🖱 Doble clic en fila</b>: Carga la canción en el reproductor.",
-            )
+            self._show_help_dialog(_h("m_player"), _h("h_player"))
         elif action == act_metadata:
-            self._show_help_dialog(
-                "Metadatos",
-                "<b>Guardar</b>: Guarda los cambios de metadatos en el archivo MP3.<br><br>"
-                "<b>Identificar (MusicBrainz/iTunes)</b>: Busca metadatos online por artista y título. Muestra comparación para elegir qué guardar.<br><br>"
-                "<b>Fingerprint (AcoustID)</b>: Identifica la canción por su huella acústica. Útil cuando no hay metadatos o son incorrectos.<br><br>"
-                "<b>Forzar Lectura</b>: Re-lee los metadatos del archivo ignorando la caché.<br><br>"
-                "<b>Rating</b>: Haz clic en las estrellas para puntuar. Se guarda automáticamente en la BD.",
-            )
+            self._show_help_dialog(_h("m_metadata"), _h("h_metadata"))
         elif action == act_gestion:
-            self._show_help_dialog(
-                "Gestión Archivos",
-                "<b>🖱 Botón derecho sobre pista (Menú contextual):</b><br><br>"
-                "<b>Añadir a DJ Master</b>: Envía la(s) pista(s) seleccionada(s) a la playlist principal del modo DJ.<br><br>"
-                "<b>Eliminar archivo</b>: Borra el archivo del disco y lo elimina de la BD.<br><br>"
-                "<b>Mover archivo</b>: Cambia el archivo de carpeta y actualiza la BD.",
-            )
+            self._show_help_dialog(_h("m_files"), _h("h_files"))
         elif action == act_reports:
-            self._show_help_dialog(
-                "Informes (Menú Ver)",
-                "<b>Pistas de Baja Calidad</b>: Muestra pistas con bitrate &lt; 128 kbps o duración &lt; 10s. "
-                "▶ Preview, ✅ Ignorar, 🗑 Eliminar archivo, 📄 Exportar TXT.<br><br>"
-                "<b>Pistas Corruptas</b>: Muestra pistas con duración &lt;= 0. "
-                "▶ Preview, ✅ Ignorar, 🗑 Eliminar archivo, 📄 Exportar TXT.<br><br>"
-                "<b>Archivos Duplicados</b>: Detecta duplicados por SHA256. 5 modos: SHA256, nombre, "
-                "título+artista, duración, tamaño+duración.<br><br>"
-                "<b>Duplicados en Favoritos</b>: Busca pistas que aparecen en más de una carpeta favorita.",
-            )
+            self._show_help_dialog(_h("m_reports"), _h("h_reports"))
 
     def _show_help_dialog(self, title, html):
         from PySide6.QtWidgets import QDialog, QTextBrowser, QVBoxLayout
+        from ui.i18n_help import help_prefix
 
         dlg = QDialog(self)
-        dlg.setWindowTitle(f"Ayuda - {title}")
+        dlg.setWindowTitle(f"{help_prefix()} - {title}")
         dlg.setFixedSize(420, 380)
         try:
             from ui.tokens import BG_500, BG_400, TEXT_80

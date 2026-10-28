@@ -8,6 +8,13 @@ from ui.styles import LOOP_BTN_OFF_QSS, LOOP_BTN_ON_QSS
 
 logger = logging.getLogger(__name__)
 
+LOOP_BORDER_COLORS = [
+    "#00b0ff",
+    "#00e676",
+    "#ff6d00",
+    "#e040fb",
+]
+
 
 class PerfTransitionMixin:
     def _get_next_playlist_path(self):
@@ -166,29 +173,49 @@ class PerfTransitionMixin:
             self._start_loop_visual_mode()
             logger.info("LOOP Visual Mode: Activado")
         else:
-            self.btn_loop.setText("🔁 LOOP")
-            self.btn_loop.setStyleSheet(LOOP_BTN_OFF_QSS)
-            logger.info("LOOP: Desactivado")
+            self._stop_loop_visual_mode()
 
     def _start_loop_visual_mode(self):
         """Inicia el mode visual LOOP - animació de 15 segons."""
-        if hasattr(self, "_loop_visual_timer"):
-            self._loop_visual_timer.stop()
-
-        # Crear timer si no existeix
         if not hasattr(self, "_loop_visual_timer"):
             self._loop_visual_timer = QTimer(self)
             self._loop_visual_timer.timeout.connect(self._animate_loop_visual)
             self._loop_visual_phase = 0
+        else:
+            self._loop_visual_timer.stop()
 
         # Activar estat inicial
         self._loop_visual_active = True
         self._loop_visual_phase = 0
+        self._loop_visual_run = getattr(self, "_loop_visual_run", 0) + 1
+        run = self._loop_visual_run
+
+        info = getattr(self, "info_panel", None)
+        if info is not None:
+            info.setObjectName("loopInfoPanel")
+        mixer = getattr(self, "mixer_panel", None)
+        if mixer is not None:
+            mixer.setObjectName("loopMixerPanel")
+        self._loop_border_orig = []
+        self._loop_styled_bg = []
+        for w in (
+            getattr(self, "playlist_widget", None),
+            getattr(self, "second_playlist_widget", None),
+            info,
+            mixer,
+        ):
+            if w is not None:
+                self._loop_border_orig.append((w, w.styleSheet()))
+                was = w.testAttribute(Qt.WidgetAttribute.WA_StyledBackground)
+                self._loop_styled_bg.append(was)
+                if not was:
+                    w.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+
         self._animate_loop_visual()  # Primera animació immediata
 
         # Durada: 15 segons
         self._loop_visual_timer.start(300)  # 300ms per frame
-        QTimer.singleShot(15000, self._stop_loop_visual_mode)  # 15 segons
+        QTimer.singleShot(15000, lambda: self._stop_loop_visual_mode(run))
 
     def _animate_loop_visual(self):
         """Anima els efectes visuals del LOOP mode."""
@@ -237,12 +264,47 @@ class PerfTransitionMixin:
         except:
             pass  # Si no hi ha decks, ignorar
 
-    def _stop_loop_visual_mode(self):
+        # Bordes de colors als panells (cada secció un color diferent)
+        cols = LOOP_BORDER_COLORS
+        borders = (
+            ("playlist_widget", "PlaylistWidget", 0),
+            ("second_playlist_widget", "PlaylistWidget", 1),
+            ("info_panel", "#loopInfoPanel", 2),
+            ("mixer_panel", "#loopMixerPanel", 3),
+        )
+        for attr, selector, offset in borders:
+            w = getattr(self, attr, None)
+            if w is None:
+                continue
+            orig = ""
+            for saved_w, saved_qss in getattr(self, "_loop_border_orig", []):
+                if saved_w is w:
+                    orig = saved_qss
+                    break
+            color = cols[(base_color + offset) % 4]
+            rule = f"{selector} {{ border: 4px solid {color}; border-radius: 6px; }}"
+            w.setStyleSheet(f"{orig}\n{rule}" if orig else rule)
+
+    def _stop_loop_visual_mode(self, run=None):
         """Atura el mode visual LOOP."""
+        if run is not None and run != getattr(self, "_loop_visual_run", 0):
+            return
+
         if hasattr(self, "_loop_visual_timer"):
             self._loop_visual_timer.stop()
 
         self._loop_visual_active = False
+
+        # Restaurar bordes originals dels panells
+        for i, (w, orig_qss) in enumerate(getattr(self, "_loop_border_orig", [])):
+            w.setStyleSheet(orig_qss)
+            if i < len(getattr(self, "_loop_styled_bg", [])):
+                w.setAttribute(
+                    Qt.WidgetAttribute.WA_StyledBackground,
+                    self._loop_styled_bg[i],
+                )
+        self._loop_border_orig = []
+        self._loop_styled_bg = []
 
         # Restaurar colors originals
         try:
@@ -615,6 +677,12 @@ class PerfTransitionMixin:
         )
         self._start_transition(deck)
 
+    def _deck_is_playing(self, deck_obj):
+        try:
+            return deck_obj.player.playbackState() != 0
+        except Exception:
+            return False
+
     def _start_transition(self, from_deck, skip_load=False):
         """Transición de un deck a otro usando el índice de playlist.
         from_deck: deck que está sonando actualmente
@@ -652,18 +720,26 @@ class PerfTransitionMixin:
 
         # Preparar deck destino (para automix normal, no skip)
         if not skip_load:
-            # Verificar que haya pistas disponibles
+            # Verificar que haya pistas disponibles. Si la cua s'ha exhaurit però
+            # el destí ja té l'última pista preparada, fer la transició igual
+            # (si no, l'última cançó no sonaria mai).
             if self._playlist_index >= len(self._playlist_tracks):
-                logger.info("[Automix] No hay más canciones en la playlist")
-                self._automix_active = False
-                self._transition_in_progress = False
-                if (
-                    hasattr(self.playlist_widget, "btn_automix")
-                    and self.playlist_widget.btn_automix
-                ):
-                    self.playlist_widget.btn_automix.setChecked(False)
-                    self.playlist_widget._update_automix_button_style(False)
-                return
+                dest_file = getattr(to_deck_obj, "current_file", None)
+                from_file = getattr(from_deck_obj, "current_file", None)
+                if not dest_file or dest_file == from_file:
+                    logger.info("[Automix] No hay más canciones en la playlist")
+                    self._automix_active = False
+                    self._transition_in_progress = False
+                    if (
+                        hasattr(self.playlist_widget, "btn_automix")
+                        and self.playlist_widget.btn_automix
+                    ):
+                        self.playlist_widget.btn_automix.setChecked(False)
+                        self.playlist_widget._update_automix_button_style(False)
+                    return
+                logger.info(
+                    "[Automix] Última pista preparada: transició sense carregar"
+                )
 
             # Asegurar que el deck destino tenga una pista cargada.
             # Normalmente ya tiene la pista cargada desde la transición anterior (índice _playlist_index - 1).
@@ -706,8 +782,13 @@ class PerfTransitionMixin:
                     self._transition_in_progress = False
                     return
 
-            # Iniciar reproducción en el deck destino si no está sonando
-            if not self._deck_started.get(to_deck, False):
+            # Iniciar reproducción en el deck destino si no está sonando.
+            # Es comprova l'estat real (no només el flag) perquè un load manual
+            # posterior pot haver deixat el flag desfasat (deck recarregat en pausa).
+            if to_deck_obj.current_file and (
+                not self._deck_started.get(to_deck, False)
+                or not self._deck_is_playing(to_deck_obj)
+            ):
                 to_deck_obj.play()
                 if to_deck_obj.deck and hasattr(to_deck_obj.deck, "is_playing"):
                     logger.info(
@@ -718,8 +799,12 @@ class PerfTransitionMixin:
             logger.info(
                 "[SKIP+MEZCLAR] Deck destino ya preparado, omitiendo carga propia"
             )
-            # Si el deck destino tiene canción cargada pero no está sonando, iniciar reproducción
-            if to_deck_obj.current_file and not self._deck_started.get(to_deck, False):
+            # Si el deck destino tiene canción cargada pero no está sonando, iniciar reproducción.
+            # Es comprova l'estat real per si el deck es va recarregar manualment en pausa.
+            if to_deck_obj.current_file and (
+                not self._deck_started.get(to_deck, False)
+                or not self._deck_is_playing(to_deck_obj)
+            ):
                 logger.info(f"[SKIP+MEZCLAR] Iniciando reproducción en deck {to_deck}")
                 to_deck_obj.play()
                 if to_deck_obj.deck and hasattr(to_deck_obj.deck, "is_playing"):
@@ -741,6 +826,7 @@ class PerfTransitionMixin:
         )
         fade_secs = float(abs(fade_val))
         fade_secs = max(fade_secs, 0.5)
+        self._fade_secs = fade_secs
         self._fade_target_val = 100.0 if from_deck == "A" else -100.0
         self._fade_current_val = float(self.crossfader.value())
         self._fade_step = 200.0 / (fade_secs * 50.0)
@@ -761,6 +847,19 @@ class PerfTransitionMixin:
 
         # Mover crossfader - esto dispara _on_crossfader_changed que aplica volúmenes
         self.crossfader.setValue(int(self._fade_current_val))
+
+        # Compte enrere del fade al label ⏱
+        try:
+            total_secs = float(getattr(self, "_fade_secs", 0) or 0)
+            if total_secs > 0:
+                left = (
+                    abs(self._fade_target_val - self._fade_current_val)
+                    / 200.0
+                    * total_secs
+                )
+                self.lbl_transition_timer.setText(f"⏱ {left:.1f}s")
+        except Exception:
+            pass
 
         if self._fade_current_val == self._fade_target_val:
             self._fade_timer.stop()

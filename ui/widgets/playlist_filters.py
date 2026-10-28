@@ -192,17 +192,22 @@ class PlaylistFilterMixin:
         self._apply_filters(reset_page=False)
 
     def cleanup_missing_files(self):
-        """Elimina de la lista los tracks que ya no existen en disco o están dañados."""
+        """Elimina de la lista las pistas muertas.
+
+        Criteri (OR): no existeix al disc, no es pot llegir, o no és a la BD.
+        Així cobreix 'Limpiar' clàssic (disc) + 'no estan a la base de dades'.
+        """
         dlg = QDialog(self)
         dlg.setWindowTitle("🧹 Eliminar Pistas Muertas")
-        dlg.setMinimumWidth(400)
+        dlg.setMinimumWidth(420)
         dlg.setStyleSheet(DARK_DIALOG_STYLE)
         layout = QVBoxLayout(dlg)
         lbl = QLabel(
-            "🧹 Se van a ELIMINAR de la lista las pistas borradas del disco.\n\n"
+            "🧹 Se van a ELIMINAR de la lista las pistas muertas.\n\n"
             "Esta función busca y elimina canciones que:\n"
             "• Ya no existen en el disco (fueron movidas/eliminadas)\n"
-            "• Estan corruptas o no se pueden leer\n\n"
+            "• No están en la base de datos (no indexadas)\n"
+            "• Están corruptas o no se pueden leer\n\n"
             "⚠️ NOTA: Solo elimina las entradas de la LISTA, no los archivos del disco.\n\n"
             "¿Buscar pistas muertas?"
         )
@@ -224,56 +229,176 @@ class PlaylistFilterMixin:
         if not dlg.exec():
             return
 
-        rows_to_remove = []
-        for r in range(self.table.rowCount() - 1, -1, -1):
-            item = self.table.item(r, 4)
-            if item:
-                path = item.data(Qt.ItemDataRole.UserRole)
-                if not os.path.exists(path):
-                    logger.debug(f"🧹 cleanup: no existe en disco -> {path}")
-                    rows_to_remove.append(r)
+        # --- helpers per comprovar disc + BD ---
+        from services.db import get_db
+        from utils.paths import normalize_path
+
+        def _is_readable(p: str) -> bool:
+            try:
+                with open(p, "rb") as f:
+                    f.read(100)
+                return True
+            except Exception:
+                return False
+
+        def _is_in_db(path: str, existing_set: set) -> bool:
+            if not path:
+                return False
+            try:
+                return normalize_path(path).lower() in existing_set
+            except Exception:
+                return False
+
+        # Recollir filepaths segons si és paginat (Llista 2) o master
+        is_paginated = not getattr(self, "is_master", True) and hasattr(self, "all_tracks")
+
+        if is_paginated:
+            # Treballar sobre all_tracks sencer (no només la pàgina visible)
+            all_filepaths = [t.get("filepath", "") for t in (self.all_tracks or [])]
+            try:
+                db = get_db()
+                existing_map = db.get_tracks_by_filepaths(all_filepaths) if all_filepaths else {}
+                existing_set = {normalize_path(k).lower() for k in existing_map.keys() if k}
+            except Exception as e:
+                logger.debug(f"🧹 cleanup: error BD -> {e}")
+                existing_set = set()
+
+            keep = []
+            removed = 0
+            for t in list(self.all_tracks or []):
+                fp = t.get("filepath", "")
+                dead = False
+                if not fp or not os.path.exists(fp):
+                    dead = True
+                elif not _is_readable(fp):
+                    dead = True
+                elif not _is_in_db(fp, existing_set):
+                    dead = True
+                if dead:
+                    logger.debug(f"🧹 cleanup: muerta -> {fp}")
+                    removed += 1
                 else:
-                    try:
-                        with open(path, "rb") as f:
-                            f.read(100)
-                    except Exception as e:
-                        logger.debug(f"🧹 cleanup: error de lectura -> {path} : {e}")
-                        rows_to_remove.append(r)
+                    keep.append(t)
 
-        if not rows_to_remove:
-            QMessageBox.information(
+            if removed == 0:
+                QMessageBox.information(
+                    self,
+                    "✨ Lista Limpia",
+                    "✅ No se encontraron pistas muertas (disc/BD).\n\nTu lista está actualizada.",
+                )
+                return
+
+            count = removed
+            reply = QMessageBox.question(
                 self,
-                "✨ Lista Limpia",
-                "✅ No se encontraron archivos faltantes o dañados.\n\n"
-                "Tu lista está actualizada.",
+                "Limpieza",
+                f"🗑 Se encontraron {count} pista(s) muertas (no existen / no en BD / dañadas).\n\n"
+                "Solo se eliminarán de la LISTA, los archivos NO se borrarán del disco.\n\n"
+                "¿Continuar?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             )
-            return
+            if reply == QMessageBox.StandardButton.No:
+                return
 
-        count = len(rows_to_remove)
-        logger.debug(f"🧹 cleanup: {count} pista(s) marcades per eliminar")
-        reply = QMessageBox.question(
-            self,
-            "Limpieza",
-            f"🗑 Se encontraron {count} pista(s) que no existen o están dañadas.\n\n"
-            "Solo se eliminarán de la LISTA, los archivos NO se borrarán del disco.\n\n"
-            "¿Continuar?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-        )
-        if reply == QMessageBox.StandardButton.No:
-            return
+            # Aturar preview si cal
+            try:
+                if getattr(self, "_current_preview_row", -1) >= 0:
+                    self.cue_player.stop()
+                    self._current_preview_row = -1
+            except Exception:
+                pass
 
-        for r in rows_to_remove:
-            if self._current_preview_row == r:
-                self.cue_player.stop()
-                self._reset_row_highlight(r)
-                self._current_preview_row = -1
-            elif self._current_preview_row > r:
-                self._current_preview_row -= 1
+            self.all_tracks = keep
+            # Recalcular filtrats i pàgina
+            try:
+                self._apply_filters(reset_page=True)
+            except Exception:
+                self.filtered_tracks = list(keep)
+                self._update_table_page()
+                self._update_pagination_display()
+            self._refresh_all_widgets()
+            # Marcar com modificat per guardar M3U
+            try:
+                self._modified = True
+            except Exception:
+                pass
+            count = removed
+        else:
+            # Master (no paginat) — iterar files visibles = tota la llista
+            filepaths = []
+            for r in range(self.table.rowCount()):
+                it = self.table.item(r, 4)
+                if it:
+                    filepaths.append(it.data(Qt.ItemDataRole.UserRole) or "")
 
-        for r in rows_to_remove:
-            self.table.removeRow(r)
+            try:
+                db = get_db()
+                existing_map = db.get_tracks_by_filepaths(filepaths) if filepaths else {}
+                existing_set = {normalize_path(k).lower() for k in existing_map.keys() if k}
+            except Exception as e:
+                logger.debug(f"🧹 cleanup: error BD -> {e}")
+                existing_set = set()
 
-        self._refresh_all_widgets()
+            rows_to_remove = []
+            for r in range(self.table.rowCount() - 1, -1, -1):
+                item = self.table.item(r, 4)
+                if not item:
+                    continue
+                path = item.data(Qt.ItemDataRole.UserRole) or ""
+                dead = False
+                if not path or not os.path.exists(path):
+                    dead = True
+                elif not _is_readable(path):
+                    dead = True
+                elif not _is_in_db(path, existing_set):
+                    dead = True
+                if dead:
+                    logger.debug(f"🧹 cleanup: muerta row {r} -> {path}")
+                    rows_to_remove.append(r)
+
+            if not rows_to_remove:
+                QMessageBox.information(
+                    self,
+                    "✨ Lista Limpia",
+                    "✅ No se encontraron pistas muertas (disc/BD).\n\nTu lista está actualizada.",
+                )
+                return
+
+            count = len(rows_to_remove)
+            logger.debug(f"🧹 cleanup: {count} pista(s) marcades per eliminar")
+            reply = QMessageBox.question(
+                self,
+                "Limpieza",
+                f"🗑 Se encontraron {count} pista(s) muertas (no existen / no en BD / dañadas).\n\n"
+                "Solo se eliminarán de la LISTA, los archivos NO se borrarán del disco.\n\n"
+                "¿Continuar?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            )
+            if reply == QMessageBox.StandardButton.No:
+                return
+
+            for r in rows_to_remove:
+                if self._current_preview_row == r:
+                    self.cue_player.stop()
+                    self._reset_row_highlight(r)
+                    self._current_preview_row = -1
+                elif self._current_preview_row > r:
+                    self._current_preview_row -= 1
+
+            for r in rows_to_remove:
+                self.table.removeRow(r)
+
+            self._refresh_all_widgets()
+            try:
+                self._modified = True
+            except Exception:
+                pass
+            # Sincronitzar all_tracks si cal (per coherència)
+            if hasattr(self, "all_tracks"):
+                try:
+                    self._rebuild_all_tracks_from_table()
+                except Exception:
+                    pass
 
         dlg = QDialog(self)
         dlg.setWindowTitle("🧹 Limpieza Completada")

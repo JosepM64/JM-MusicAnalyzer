@@ -49,6 +49,12 @@ class PlaylistTrackOpsMixin:
 
         t0 = time.perf_counter()
         r = self.table.rowCount()
+        # IMPORTANT: amb sorting actiu, cada setItem reordena les files i les
+        # cel·les posteriors cauen en una altra fila (només 1 fila queda plena).
+        # Es desactiva mentre es pobla la fila i es restaura al final.
+        sorting_enabled = self.table.isSortingEnabled()
+        if sorting_enabled:
+            self.table.setSortingEnabled(False)
         self.table.insertRow(r)
         self._modified = True
         artist, title, genre, dur, stars = "...", os.path.basename(path), "", None, 0
@@ -158,6 +164,9 @@ class PlaylistTrackOpsMixin:
             logger.debug(
                 f"  -> add_track slow: {elapsed:.3f}s, source={source}, path={os.path.basename(path)}"
             )
+
+        if sorting_enabled:
+            self.table.setSortingEnabled(True)
 
         if not self.is_master and not self._batch_adding:
             self._rebuild_all_tracks_from_table()

@@ -65,6 +65,9 @@ class DatabaseManager:
     def get_fake_tracks(self) -> list:
         return self._queries.get_fake_tracks()
 
+    def get_track_count(self) -> int:
+        return self._queries.get_track_count()
+
     def _track_to_values(self, music_file) -> tuple:
         return self._mutations._track_to_values(music_file)
 

@@ -2,8 +2,12 @@ from datetime import datetime
 import logging
 import os
 import sys
+from logging.handlers import RotatingFileHandler
 
 from utils.version import get_app_version
+
+LOG_MAX_BYTES = 2 * 1024 * 1024
+LOG_BACKUP_COUNT = 3
 
 
 def setup_logging(level=logging.INFO):
@@ -23,7 +27,14 @@ def setup_logging(level=logging.INFO):
 
     if getattr(sys, "frozen", False):
         try:
-            handlers.append(logging.FileHandler(log_file, encoding="utf-8"))
+            handlers.append(
+                RotatingFileHandler(
+                    log_file,
+                    maxBytes=LOG_MAX_BYTES,
+                    backupCount=LOG_BACKUP_COUNT,
+                    encoding="utf-8",
+                )
+            )
         except OSError:
             pass
 

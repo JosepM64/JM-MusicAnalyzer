@@ -304,7 +304,12 @@ class PerfDeckMixin:
                 self.deck_a.setAudioDevice(cfg["master"])
                 self.deck_b.setAudioDevice(cfg["master"])
             if cfg["cue"]:
+                # Aplicar a les DOS llistes i als decks (abans només Llista 1:
+                # la Llista 2 i el CUE dels decks quedaven amb el dispositiu vell)
                 self.playlist_widget.setAudioDevice(cfg["cue"])
+                self.second_playlist_widget.setAudioDevice(cfg["cue"])
+                self.deck_a.setCueAudioDevice(cfg["cue"])
+                self.deck_b.setCueAudioDevice(cfg["cue"])
             self._update_audio_device_label()
 
     def _on_save_rating(self, path, stars):

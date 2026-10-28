@@ -29,6 +29,7 @@ class SettingsManager:
             "master_device_id": "",
             "cue_device_id": "",
             "default_playlist_dir": "",
+            "default_library_dir": "",
             "last_window_size": [1200, 850],
         }
 

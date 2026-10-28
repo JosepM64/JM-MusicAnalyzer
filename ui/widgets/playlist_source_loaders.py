@@ -3,6 +3,7 @@ import os
 
 from PySide6.QtCore import QObject, Qt, QThread, QTimer, Signal
 from PySide6.QtWidgets import (
+    QDialog,
     QFileDialog,
     QHBoxLayout,
     QLabel,
@@ -11,7 +12,6 @@ from PySide6.QtWidgets import (
     QPushButton,
     QVBoxLayout,
 )
-from PySide6.QtWidgets import QDialog
 
 logger = logging.getLogger(__name__)
 
@@ -311,6 +311,8 @@ class PlaylistSourceLoaderMixin:
         t0 = time.perf_counter()
 
         self._batch_adding = True
+        sorting_enabled = self.table.isSortingEnabled()
+        self.table.setSortingEnabled(False)
         audio_exts = {".mp3", ".flac", ".ogg", ".wav", ".m4a", ".wma", ".aac"}
         count = 0
 
@@ -323,6 +325,7 @@ class PlaylistSourceLoaderMixin:
                     count += 1
 
         self._batch_adding = False
+        self.table.setSortingEnabled(sorting_enabled)
         if not self.is_master:
             self._rebuild_all_tracks_from_table()
             self._apply_filters()
@@ -382,7 +385,13 @@ class PlaylistSourceLoaderMixin:
         self.load_m3u(self._current_playlist_path)
 
     def load_from_favorite_folder(self, folder_path):
-        """Carga todos los tracks de una carpeta favorita desde la base de datos (async)."""
+        """Carga todos los tracks de una carpeta favorita desde el disco (recursivo).
+
+        Lee los archivos de audio directamente del sistema de archivos en lugar de
+        depender exclusivamente de la base de datos. Así, si hay 127 archivos en disco
+        pero solo 1 indexada en la BD, se muestran los 127. Los metadatos de la BD
+        se usan para enriquecer cada pista vía add_track().
+        """
         if self.is_master:
             return
 
@@ -404,49 +413,46 @@ class PlaylistSourceLoaderMixin:
         self.all_tracks = []
         self._current_playlist_path = None
 
-        from services.db import get_db
+        # Sorting desactivat durant la càrrega massiva (evita reordenar a cada fila)
+        sorting_enabled = self.table.isSortingEnabled()
+        self.table.setSortingEnabled(False)
 
-        class LoadFolderWorker(QObject):
-            finished = Signal(object)
-            error = Signal(str)
+        # Cargar desde disco directamente (como _load_folder_to_list)
+        import time
 
-            def __init__(self, folder_path, folder_name):
-                super().__init__()
-                self._folder_path = folder_path
-                self._folder_name = folder_name
+        t0 = time.perf_counter()
+        self._batch_adding = True
+        audio_exts = {".mp3", ".flac", ".ogg", ".wav", ".m4a", ".wma", ".aac"}
+        track_paths = []
 
-            def run(self):
-                try:
-                    db = get_db()
-                    logger.debug(
-                        f"[FAVORIT WORKER] Carregant tracks de: {self._folder_path}"
-                    )
-                    tracks = db.get_tracks_by_folder(self._folder_path, recursive=True)
-                    logger.debug(f"[FAVORIT WORKER] Trobats {len(tracks)} tracks")
-                    self.finished.emit((tracks, self._folder_name))
-                except Exception as e:
-                    logger.error(f"[FAVORIT WORKER] Error: {e}")
-                    import traceback
+        for root, _dirs, files in os.walk(folder_path):
+            for f in files:
+                ext = os.path.splitext(f)[1].lower()
+                if ext in audio_exts:
+                    filepath = os.path.join(root, f)
+                    track_paths.append(filepath)
 
-                    traceback.print_exc()
-                    self.error.emit(str(e))
+        # Añadir cada pista (add_track enriquece con metadatos de BD si existen)
+        for fp in track_paths:
+            self.add_track(fp, silent=True)
 
-        self._load_thread = QThread()
-        self._load_worker = LoadFolderWorker(folder_path, folder_name)
-        self._load_worker.moveToThread(self._load_thread)
+        self._batch_adding = False
+        self.table.setSortingEnabled(sorting_enabled)
 
-        self._load_thread.started.connect(self._load_worker.run)
-        self._load_worker.finished.connect(
-            self._on_folder_loaded, Qt.ConnectionType.QueuedConnection
+        if not self.is_master:
+            self._rebuild_all_tracks_from_table()
+            self._apply_filters()
+
+        count = len(track_paths)
+        elapsed = time.perf_counter() - t0
+        logger.info(
+            f"load_from_favorite_folder: {count} tracks from {folder_path} in {elapsed:.2f}s"
         )
-        self._load_worker.error.connect(
-            self._on_folder_load_error, Qt.ConnectionType.QueuedConnection
-        )
-        self._load_worker.finished.connect(self._load_thread.quit)
-        self._load_worker.finished.connect(self._load_worker.deleteLater)
-        self._load_thread.finished.connect(self._load_thread.deleteLater)
 
-        self._load_thread.start()
+        if not self.is_master:
+            self._update_source_label(
+                f"📁 {folder_name} ({count} tracks)", "#ff9800"
+            )
 
     def _on_folder_loaded(self, result):
         """Callback quan els tracks del folder s'han carregat (executat al thread UI)."""

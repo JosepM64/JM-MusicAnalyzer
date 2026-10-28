@@ -123,6 +123,10 @@ class DeckControlsMixin:
                 self.btn_cue.setToolTip("CUE: Pre-escolta per auriculars")
             except Exception as e:
                 logger.error(f"Error aturant CUE: {e}")
+        # Avvisa al bus global que la CUE del deck s'ha aturat
+        from core.cue_bus import get_cue_bus
+
+        get_cue_bus().cue_stopped.emit()
 
     def _toggle_cue(self):
         """Activa/desactiva la pre-escolta CUE."""
@@ -149,6 +153,10 @@ class DeckControlsMixin:
                 self._cue_player.setSource(QUrl.fromLocalFile(self.current_file))
                 self._cue_player.play()
                 self._cue_playing = True
+                # Avvisa al bus global que el deck ha iniciat CUE
+                from core.cue_bus import get_cue_bus
+
+                get_cue_bus().cue_started.emit(self.current_file or "")
                 self.btn_cue.setStyleSheet(
                     "background-color: #0078d4; color: white; border: 2px solid #005a9e; border-radius: 4px;"
                 )

@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 from services.db import get_db
+from services.settings_manager import SettingsManager
 from workers.analyze_worker import AnalyzeWorker
 
 logger = logging.getLogger(__name__)
@@ -16,7 +17,10 @@ class MainWindowScanMixin:
     def _on_scan_folder(self, recursive=True):
         from PySide6.QtWidgets import QFileDialog
 
-        path = QFileDialog.getExistingDirectory(self, "Seleccionar carpeta")
+        start = str(SettingsManager().get("default_library_dir", "") or "")
+        path = QFileDialog.getExistingDirectory(
+            self, "Seleccionar carpeta", start if os.path.isdir(start) else ""
+        )
         if path:
             self._last_scanned_paths = [path]
             self.start_batch_analysis([path], recursive=recursive)
@@ -98,6 +102,10 @@ class MainWindowScanMixin:
         if folder:
             tracks = self.db_manager.get_tracks_by_folder(folder)
             self.file_list.load_tracks_from_db(tracks)
+        try:
+            self._update_tracks_count()
+        except Exception:
+            pass
         result = self.db_manager.auto_optimize_if_needed()
         if result:
             logger.info(f"Auto-optimizacion: {result}")
@@ -123,7 +131,8 @@ class MainWindowScanMixin:
 
         dlg = QDialog(self)
         dlg.setWindowTitle(f"Archivos nuevos: {count}")
-        dlg.resize(800, 420)
+        dlg.resize(680, 380)
+        dlg.setMinimumSize(520, 300)
         layout = QVBoxLayout(dlg)
 
         header = QLabel(
@@ -139,10 +148,23 @@ class MainWindowScanMixin:
 
         table = QTableWidget(count, 5)
         table.setHorizontalHeaderLabels(["Título", "Artista", "Género", "Carpeta", ""])
-        table.horizontalHeader().setStretchLastSection(False)
-        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        header = table.horizontalHeader()
+        header.setStretchLastSection(False)
+        header.setMinimumSectionSize(24)
+        header.setDefaultSectionSize(90)
+        header.setSectionsMovable(False)
+        # Título estira, accions fixa, resta Interactive → es poden fer petites
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Interactive)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Interactive)
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Interactive)
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)
+        table.setColumnWidth(1, 130)
+        table.setColumnWidth(2, 90)
+        table.setColumnWidth(3, 140)
         table.setColumnWidth(4, 70)
         table.verticalHeader().setVisible(False)
+        table.verticalHeader().setDefaultSectionSize(22)
         table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         table.setSelectionMode(QTableWidget.SelectionMode.NoSelection)
 

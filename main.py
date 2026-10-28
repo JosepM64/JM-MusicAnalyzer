@@ -65,7 +65,7 @@ def main():
     multiprocessing.freeze_support()
 
     # Setup logging
-    setup_logging(level=logging.DEBUG)
+    setup_logging(level=logging.INFO)
     logger = logging.getLogger("Main")
     logger.info("Starting JM-MusicAnalyzer...")
 

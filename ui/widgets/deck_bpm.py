@@ -80,7 +80,7 @@ class DeckBpmMixin:
                 rate_text = "100%"
             self.lbl_rate.setText(rate_text)
             self.lbl_rate.setStyleSheet(
-                f"font-size: 8px; font-weight: bold; color: {rate_color}; background: #1a1a1a; border: 1px solid #333; border-radius: 3px;"
+                f"font-size: 9px; font-weight: bold; color: {rate_color}; background: #1a1a1a; border: 1px solid #333; border-radius: 3px;"
             )
         else:
             self.lbl_bpm_display.setText("BPM: --")
@@ -89,7 +89,7 @@ class DeckBpmMixin:
             )
             self.lbl_rate.setText("100%")
             self.lbl_rate.setStyleSheet(
-                "font-size: 8px; font-weight: bold; color: #555; background: #1a1a1a; border: 1px solid #333; border-radius: 3px;"
+                "font-size: 9px; font-weight: bold; color: #555; background: #1a1a1a; border: 1px solid #333; border-radius: 3px;"
             )
 
     def _reset_bpm(self):

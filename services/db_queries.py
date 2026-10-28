@@ -389,3 +389,15 @@ class DatabaseQueries:
         except Exception as e:
             logger.error(f"Error getting database stats: {e}")
             return []
+
+    def get_track_count(self) -> int:
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM tracks")
+            total = cursor.fetchone()[0]
+            conn.close()
+            return int(total) if total is not None else 0
+        except Exception as e:
+            logger.error(f"Error getting track count: {e}")
+            return 0

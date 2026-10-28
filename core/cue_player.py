@@ -1,6 +1,7 @@
 import logging
 import threading
 
+import numpy as np
 from PySide6.QtCore import QObject, Signal
 
 try:
@@ -16,6 +17,8 @@ except ImportError:
     _HAS_SOUNDDEVICE = False
 
 logger = logging.getLogger(__name__)
+
+_OUT_CHANNELS = 2
 
 
 class CUEFallbackPlayer(QObject):
@@ -49,7 +52,17 @@ class CUEFallbackPlayer(QObject):
         self._filename = str(source)
 
         try:
-            self._data, self._samplerate = sf.read(self._filename, dtype="float32")
+            data, sr = sf.read(self._filename, dtype="float32")
+            # El callback escriu sempre a outdata estereo (N,2). Un fitxer mono (N,)
+            # trencava amb ValueError al callback cffi -> preescolta sense so.
+            if data.ndim == 1:
+                data = np.repeat(data[:, np.newaxis], _OUT_CHANNELS, axis=1)
+            elif data.shape[1] == 1:
+                data = np.repeat(data, _OUT_CHANNELS, axis=1)
+            elif data.shape[1] > _OUT_CHANNELS:
+                data = data[:, :_OUT_CHANNELS]
+            self._data = data
+            self._samplerate = sr
             with self._position_lock:
                 self._position = 0
             self._duration = len(self._data) / self._samplerate * 1000
@@ -64,7 +77,8 @@ class CUEFallbackPlayer(QObject):
             return
         self._playing = True
         self._start_stream()
-        self.playbackStateChanged.emit(1)
+        # Si _start_stream ha fallat (device ocupat/invalid), _playing ja es False
+        self.playbackStateChanged.emit(1 if self._playing else 0)
 
     def pause(self):
         self._playing = False
@@ -172,6 +186,13 @@ class CUEFallbackPlayer(QObject):
         else:
             logger.info("CUEFallbackPlayer: sin device específico, usando default")
 
-        self._stream = sd.OutputStream(**stream_kwargs)
-        self._stream.start()
+        try:
+            self._stream = sd.OutputStream(**stream_kwargs)
+            self._stream.start()
+        except Exception as e:
+            # Device ocupat o invalid: no trencar el click, només log + sense so
+            logger.exception("CUEFallbackPlayer: no s'ha pogut obrir el stream")
+            self._stream = None
+            self._playing = False
+            return
         logger.info(f"CUEFallbackPlayer: stream iniciado, device={self._device}")

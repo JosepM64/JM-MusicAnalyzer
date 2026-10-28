@@ -112,6 +112,7 @@ class MainWindow(
         self.metadata_panel.addFolderRequested.connect(self._on_scan_folder)
 
         self.file_tree.folderClicked.connect(self._on_tree_folder_clicked)
+        self.file_tree.addToFavorites.connect(self._on_tree_add_favorite)
         self.file_tree.rescanFolder.connect(self._on_rescan_folder)
 
         self.combo_genre.currentIndexChanged.connect(self._apply_filters)
@@ -120,14 +121,58 @@ class MainWindow(
         self.search_field.returnPressed.connect(self._on_global_search_enter)
 
     def _load_initial_state(self):
+        self._refresh_folder_tree()
+        self._load_genre_combo()
+        self._apply_filters()
+        try:
+            self._update_tracks_count()
+        except Exception:
+            pass
+
+    def _refresh_folder_tree(self):
+        """Recarrega l'arbre de carpetes: favorits vàlids o fallback.
+
+        Si no hi ha favorits (cas de la foto buida), cau a
+        `default_library_dir` perquè el panell mai quedi buit.
+        """
         from services.bookmarks_manager import BookmarksManager
 
         bm = BookmarksManager()
-        bookmarks = bm.load_bookmarks()
+        bookmarks = [b for b in bm.load_bookmarks() if self._bookmark_exists(b)]
         if bookmarks:
             self.file_tree.load_favorites_tree(bookmarks)
-        self._load_genre_combo()
-        self._apply_filters()
+            return
+        fallback = (self.settings.get("default_library_dir", "") or "").strip()
+        if fallback and os.path.isdir(fallback):
+            self.file_tree.load_folder_tree(fallback)
+            return
+        self.file_tree.load_favorites_tree([])
+
+    @staticmethod
+    def _bookmark_exists(bookmark) -> bool:
+        path = (
+            bookmark.get("path", bookmark)
+            if isinstance(bookmark, dict)
+            else bookmark
+        )
+        return bool(path) and os.path.isdir(path)
+
+    def _on_tree_add_favorite(self, path, recursive=True):
+        """Afegeix favorit des del menú contextual de l'arbre (abans mort)."""
+        if not path or not os.path.isdir(path):
+            return
+        from services.bookmarks_manager import BookmarksManager
+
+        bm = BookmarksManager()
+        if bm.add_bookmark(path, recursive=recursive):
+            self._refresh_folder_tree()
+            try:
+                self.metadata_panel.refresh_bookmarks()
+            except Exception:
+                pass
+            self.statusBar().showMessage(
+                f"Favorit afegit: {os.path.basename(path)}", 3000
+            )
 
     def _load_genre_combo(self):
         genres = self.db_manager.get_unique_genres()
@@ -321,6 +366,15 @@ class MainWindow(
         )
 
     def _on_switch_to_performance(self):
+        # Atura qualsevol CUE de l'editor abans de passar al mode DJ
+        try:
+            self.file_list._stop_cue_preview()
+        except Exception:
+            pass
+        from core.cue_bus import get_cue_bus
+
+        get_cue_bus().cue_stopped.emit()
+
         if self._perf_window is None:
             try:
                 self._perf_window = PerformanceWindow()
@@ -345,6 +399,14 @@ class MainWindow(
     def _on_performance_closed(self):
         self._perf_window = None
         self.show()
+        # Atura qualsevol CUE del DJ al tornar a l'editor
+        try:
+            self.file_list._stop_cue_preview()
+        except Exception:
+            pass
+        from core.cue_bus import get_cue_bus
+
+        get_cue_bus().cue_stopped.emit()
 
     def _on_clear_database(self):
         reply = QMessageBox.question(
@@ -361,6 +423,10 @@ class MainWindow(
                 self.file_list.clear_all()
                 self._load_genre_combo()
                 self.statusBar().showMessage("Base de datos limpiada", 3000)
+                try:
+                    self._update_tracks_count()
+                except Exception:
+                    pass
             except Exception as e:
                 logger.error(f"Error clearing database: {e}")
                 QMessageBox.critical(
@@ -397,6 +463,10 @@ class MainWindow(
             if deleted > 0:
                 self._refresh_current_view()
                 self._load_genre_combo()
+            try:
+                self._update_tracks_count()
+            except Exception:
+                pass
             QMessageBox.information(
                 self,
                 "Limpieza completada",
@@ -476,6 +546,10 @@ class MainWindow(
                 self.file_list.clear_all()
                 self._refresh_current_view()
                 self._load_genre_combo()
+                try:
+                    self._update_tracks_count()
+                except Exception:
+                    pass
                 QMessageBox.information(
                     self,
                     "Restauración completada",
@@ -518,6 +592,10 @@ class MainWindow(
                 return
 
             self._refresh_current_view()
+            try:
+                self._update_tracks_count()
+            except Exception:
+                pass
 
             msg = f"Reconstruidas: {result['rebuilt']} de {result['total']} pistas"
             if result["errors"]:

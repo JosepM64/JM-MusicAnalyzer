@@ -2,7 +2,7 @@
 
 ## Descripció
 Analitzador de música i eina DJ. Python 3.13 + PySide6.
-- **Versió**: 4.54.7 | **Data**: 2026-09-15 | **Build**: ~211 MB
+- **Versió**: 4.54.23 | **Data**: 2026-10-28 | **Build**: ~227 MB
 
 ## Estructura
 ```
@@ -56,10 +56,15 @@ mutagen, numpy, musicbrainzngs, sounddevice, soundfile, soxr (resampleig), pyaco
 - `library.db`, mode WAL, auto-vacuum
 - Taula `tracks` amb indexes sha256, genre, artist, filepath
 
-## Últimes 3 versions
-- **v4.54.7**: Fix descàrrega YouTube amb URL enganxada — `DownloadWorker._download_single` retornava la ruta construïda amb el títol CRU i yt-dlp desa amb el nom SANEJAT (`"` → `＂`) → la ruta no existia i semblava que no s'hagués descarregat; ara es pregunta la ruta a yt-dlp + fallback al fitxer creat; enganxar una URL deixa el resultat marcat i «Descarregar» funciona sense prémer «Cercar»
-- **v4.54.6**: Fix `QMenuBar` blanc en un PC amb Windows en mode clar — el QSS no tenia regles per a la barra de menú i la pintava l'estil natiu amb els colors del sistema; ara `APP_GLOBAL_QSS` la pinta (`BG_900` + `::item:selected` `BG_500`)
-- **v4.54.5**: Fix botons de la pantalla DJ sense símbol (21 botons: barra de la llista, paginació, compactes, LOOP, ❓, ■/🎧 dels decks, 💾/🔍 caràtula) amb el nou helper `ui/styles.icon_btn_qss()` + constants per als que es reassignen en calent; guarda `verify_icon_button_padding()` a `verify_automatica.py` (WARN) perquè no torni a passar
+## Últimes 4 versions
+- **v4.54.23**: **Fix definitiu Lista 2 "només 1 track"** — `setSortingEnabled(True)` a `playlist_widget.py` feia que el primer `setItem(r, 0, …)` d'`add_track()` re-ordenés la fila i la resta de cel·les anessin a una altra fila (127 files inserides, 1 poblada). `add_track()` i els dos carregadors massius (`load_from_favorite_folder`, `_load_folder_to_list`) suspenen i restauren el sorting. Verificat offscreen 127/127
+- **v4.54.22**: Lista 2 carrega els favorits directament del disc amb `os.walk` (abans només `db.get_tracks_by_folder()`); eliminat `LoadFolderWorker`. Insuficient — la causa era el sorting
+- **v4.54.21**: Preescolta CUE exclusiva global (`core/cue_bus.py`: `cue_started(str)` / `cue_stopped()`), connectada a editor, playlists DJ i decks; canvi de mode Editor ↔ DJ atura la CUE. Fix del crash `libshiboken: … QObject … twice!` a `CueBus.__new__`
+- **v4.54.20**: Botó 🆕 "Crear nueva playlist" a la Lista 2 (demana nom, desa `.m3u`) + ajuda ES/CA; `yt-dlp` 2026.10.21 → 2026.10.26
+
+## Regles apreses (playlists)
+- **MAI** omplir una `QTableWidget` amb `setSortingEnabled(True)` i `setItem(row, col)` per índex: el primer `setItem` re-ordena i desplaça la fila. Sempre `setSortingEnabled(False)` → omplir → `setSortingEnabled(anterior)`
+- `add_track()` ja ho fa; qualsevol bucle massiu nou ha de seguir el mateix patró (o delegar en `add_track`)
 
  Versions anteriors: veure fitxer de versions o git log
 
@@ -71,6 +76,14 @@ mutagen, numpy, musicbrainzngs, sounddevice, soundfile, soxr (resampleig), pyaco
 - Per provar l'executable, llançar `dist\JM-MusicAnalyzer\JM-MusicAnalyzer.exe` directament
 
 ## Manteniment
+- **2026-10-28**: Neteja de backups i restes de proves (~1,43 GB alliberats):
+  - `C:\Users\JM\.jm_music_analyzer\backups\` — 2 còpies de `library.db` del 14/04/2026 (2 × 696 MB, 1,39 GB); la BD activa (`library.db`, 1,6 GB, 25/10/2026) no es toca
+  - `build/` (32,7 MB, intermedi de PyInstaller — `build.bat` el regenera)
+  - 15 carpetes `__pycache__/` + `.ruff_cache/`
+  - `dist/JM-MusicAnalyzer/jm_music_analyzer.log` (log runtime — es regenera sol)
+  - `scripts/backup_before_commit.bat` — script orfe (cap referència, usa `wmic` obsolet i apuntava a `backups/pre_commit`, que no existeix)
+  - Scripts de prova temporals a `%TEMP%\opencode\` (`diag_llista2.py`, `repro_llista2.py`, `probe_rebuild.py`, `trace_add.py`, `music_*.py`, `commit_msg_v6937.txt`)
+  - `dist/JM-MusicAnalyzer/` (227,5 MB) verificat intacte després de la neteja
 - **2026-08-24**: Repositori git inicialitzat — commit inicial `d69492f` (castellà, 119
   fitxers, v4.51.0). `.gitignore` cobreix caches, build/, dist/, logs i
   `config/api_keys.py`; s'ha afegit excepció `!JM-MusicAnalyzer.spec` per versionar

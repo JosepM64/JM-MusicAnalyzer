@@ -3,6 +3,7 @@ import logging
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QTableWidget
 
+from core.cue_bus import get_cue_bus
 from core.cue_player import CUEFallbackPlayer
 from ui.widgets.file_list_actions import FileListActionsMixin
 from ui.widgets.file_list_columns import FileListColumnsMixin
@@ -59,6 +60,11 @@ class FileListWidget(
         cue_device_idx = self._get_cue_device_index()
         self._cue_player = CUEFallbackPlayer(device=cue_device_idx)
         self._cue_player.playbackStateChanged.connect(self._on_cue_state_changed)
+
+        # Connecta al bus global de CUE per exclusió mutua amb DJ i decks
+        _bus = get_cue_bus()
+        _bus.cue_started.connect(self._on_global_cue_started)
+        _bus.cue_stopped.connect(self._on_global_cue_stopped)
 
     def _get_cue_device_index(self):
         try:

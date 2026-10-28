@@ -8,8 +8,10 @@ from PySide6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
     QLineEdit,
+    QMessageBox,
     QProgressBar,
     QPushButton,
     QSlider,
@@ -19,6 +21,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from core.cue_bus import get_cue_bus
 from core.cue_player import CUEFallbackPlayer
 from services.app_paths import get_data_dir
 from services.bookmarks_manager import BookmarksManager
@@ -26,6 +29,7 @@ from services.playlist_manager import PlaylistManager
 from services.settings_manager import SettingsManager
 from ui.styles import DARK_DIALOG_STYLE, icon_btn_qss
 from ui.widgets.playlist_automix import PlaylistAutomixMixin
+from ui.widgets.playlist_context_menu import PlaylistContextMenuMixin
 from ui.widgets.playlist_cue import PlaylistCUEMixin
 from ui.widgets.playlist_file_io import PlaylistFileIOMixin
 from ui.widgets.playlist_filters import PlaylistFilterMixin
@@ -34,7 +38,7 @@ from ui.widgets.playlist_sorting import PlaylistSortingMixin
 from ui.widgets.playlist_source_loaders import PlaylistSourceLoaderMixin
 from ui.widgets.playlist_table_ops import PlaylistTableOpsMixin
 from ui.widgets.playlist_track_ops import PlaylistTrackOpsMixin
-from ui.widgets.playlist_context_menu import PlaylistContextMenuMixin
+from utils.paths import normalize_path
 
 logger = logging.getLogger(__name__)
 
@@ -108,7 +112,8 @@ class PlaylistWidget(
             self.cue_player = None
             logger.warning("PlaylistWidget: sin soporte de audio para CUE")
         self.play_counts_file = os.path.join(get_data_dir(), "play_counts.json")
-        self.play_counts_manager = PlayCountsManager(self.play_counts_file)
+        self.play_counts_manager = PlayCountsManager.shared(self.play_counts_file)
+        self.play_counts_manager.add_listener(self)
         self._last_load_deck = "B"
         self.all_tracks = []
         self.filtered_tracks = []
@@ -140,6 +145,11 @@ class PlaylistWidget(
         self.filter_timer.setSingleShot(True)
         self.filter_timer.timeout.connect(self._apply_filters)
 
+        # Connecta al bus global de CUE per exclusió mutua amb editor i decks
+        _bus = get_cue_bus()
+        _bus.cue_started.connect(self._on_global_cue_started)
+        _bus.cue_stopped.connect(self._on_global_cue_stopped)
+
     def _setup_ui(self):
         layout = QVBoxLayout(self)
         top = QHBoxLayout()
@@ -160,6 +170,13 @@ class PlaylistWidget(
             top.addWidget(b)
 
         if self.is_master:
+            self.btn_new_playlist = QPushButton("🆕")
+            self.btn_new_playlist.setToolTip("Crear nueva playlist (pide nombre y guarda .m3u)")
+            self.btn_new_playlist.setFixedSize(28, 28)
+            self.btn_new_playlist.setStyleSheet(icon_btn_qss(11))
+            self.btn_new_playlist.clicked.connect(self._on_new_playlist_clicked)
+            top.addWidget(self.btn_new_playlist)
+
             self.btn_recargar = QPushButton("🔄")
             self.btn_recargar.setToolTip("🔄 Recargar playlist desde archivo")
             self.btn_recargar.setFixedSize(28, 28)
@@ -286,6 +303,14 @@ class PlaylistWidget(
             self.btn_reset_plays.setVisible(False)
         cfg.addSpacing(10)
         cfg.addWidget(self.btn_reset_plays)
+
+        self.btn_session = QPushButton("📜 Sessió")
+        self.btn_session.setStyleSheet("font-size: 10px; color: #4dabf7;")
+        self.btn_session.setToolTip(
+            "Cançons punxades en aquesta sessió (fins al proper Reset)"
+        )
+        self.btn_session.clicked.connect(self.show_session_tracks)
+        cfg.addWidget(self.btn_session)
 
         self.btn_cleanup = QPushButton("🧹 Limpiar")
         self.btn_cleanup.setStyleSheet("font-size: 10px; color: #ffaa44;")
@@ -482,14 +507,84 @@ class PlaylistWidget(
         self.play_counts_manager.increment(path)
         self._refresh_play_count_in_table(path)
 
-    def _refresh_play_count_in_table(self, path):
+    def _refresh_play_count_in_table(self, path=None):
+        target = None
+        if path is not None:
+            try:
+                target = normalize_path(path).lower()
+            except Exception:
+                target = path
         for r in range(self.table.rowCount()):
             item = self.table.item(r, 4)
-            if item and item.data(Qt.ItemDataRole.UserRole) == path:
-                play_item = self.table.item(r, 2)
-                if play_item:
-                    play_item.setText(str(self.play_counts_manager.get(path)))
-                break
+            if item is None:
+                continue
+            if target is not None:
+                try:
+                    row_key = normalize_path(
+                        item.data(Qt.ItemDataRole.UserRole) or ""
+                    ).lower()
+                except Exception:
+                    row_key = None
+                if row_key != target:
+                    continue
+                row_path = item.data(Qt.ItemDataRole.UserRole)
+            else:
+                row_path = item.data(Qt.ItemDataRole.UserRole)
+            play_item = self.table.item(r, 2)
+            if play_item:
+                play_item.setText(str(self.play_counts_manager.get(row_path)))
+
+    def show_session_tracks(self):
+        from PySide6.QtWidgets import (
+            QDialog,
+            QLabel,
+            QPushButton,
+            QTableWidgetItem,
+            QVBoxLayout,
+        )
+
+        tracks = self.play_counts_manager.session_tracks()
+        dlg = QDialog(self)
+        dlg.setWindowTitle(f"Punxades aquesta sessió ({len(tracks)})")
+        dlg.resize(520, 400)
+        dlg.setStyleSheet(DARK_DIALOG_STYLE)
+        layout = QVBoxLayout(dlg)
+        if not tracks:
+            lbl = QLabel("Encara no s'ha punxat cap cançó en aquesta sessió.")
+            lbl.setWordWrap(True)
+            layout.addWidget(lbl)
+        else:
+            import time as _time
+
+            table = QTableWidget(len(tracks), 4)
+            table.setHorizontalHeaderLabels(["#", "Cançó", "Plays", "Hora"])
+            table.verticalHeader().setVisible(False)
+            table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+            for i, t in enumerate(tracks):
+                table.setItem(i, 0, QTableWidgetItem(str(i + 1)))
+                table.setItem(
+                    i, 1, QTableWidgetItem(os.path.basename(t.get("path", "")))
+                )
+                table.setItem(i, 2, QTableWidgetItem(str(t.get("count", 1))))
+                table.setItem(
+                    i,
+                    3,
+                    QTableWidgetItem(
+                        _time.strftime(
+                            "%H:%M:%S", _time.localtime(t.get("first", 0))
+                        )
+                    ),
+                )
+            table.resizeColumnsToContents()
+            table.horizontalHeader().setStretchLastSection(True)
+            layout.addWidget(table)
+        btns = QHBoxLayout()
+        btn_ok = QPushButton("Tancar")
+        btn_ok.clicked.connect(dlg.accept)
+        btns.addStretch()
+        btns.addWidget(btn_ok)
+        layout.addLayout(btns)
+        dlg.exec()
 
     def reset_all_play_counts(self):
         """Resetea todos los contadores de reproducción a 0."""
@@ -502,7 +597,8 @@ class PlaylistWidget(
         layout = QVBoxLayout(dlg)
         lbl = QLabel(
             "🔄 Se van a BORRAR los Plays de todas las canciones.\n\n"
-            "Esta acción pone a 0 el contador de reproducciones de TODAS las canciones de la lista.\n\n"
+            "Esta acción pone a 0 el contador de reproducciones de TODAS las canciones\n"
+            "y vacía la lista de sesión (📜 Sessió).\n\n"
             "¿Continuar?"
         )
         lbl.setWordWrap(True)
@@ -526,6 +622,72 @@ class PlaylistWidget(
                 it = self.table.item(r, 2)
                 if it:
                     it.setText("0")
+
+    def _on_new_playlist_clicked(self):
+        """Crea una playlist vacía pidiendo el nombre al usuario."""
+        if self.is_modified():
+            reply = QMessageBox.question(
+                self,
+                "Playlist modificada",
+                "La playlist principal tiene cambios sin guardar.\n"
+                "¿Desea guardarlos antes de crear una nueva?",
+                QMessageBox.StandardButton.Save
+                | QMessageBox.StandardButton.Discard
+                | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Cancel,
+            )
+            if reply == QMessageBox.StandardButton.Save:
+                self._on_save_clicked()
+                if self.is_modified():
+                    return
+            elif reply == QMessageBox.StandardButton.Cancel:
+                return
+
+        default_dir = str(self.settings.get("default_playlist_dir", ""))
+        if not default_dir:
+            default_dir = os.path.expanduser("~")
+
+        name, ok = QInputDialog.getText(
+            self,
+            "Nueva playlist",
+            "Nombre de la nueva playlist:",
+            text="Nueva playlist",
+        )
+        if not ok or not name.strip():
+            return
+
+        name = name.strip()
+        if not name.lower().endswith(".m3u"):
+            name += ".m3u"
+
+        new_path = os.path.join(default_dir, name)
+
+        if os.path.exists(new_path):
+            reply = QMessageBox.question(
+                self,
+                "Playlist ya existe",
+                f"La playlist '{name}' ya existe.\n"
+                "¿Desea sobreescribirla?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if reply != QMessageBox.StandardButton.Yes:
+                return
+
+        # Limpiar playlist actual y establecer la nueva
+        self.table.setRowCount(0)
+        self.all_tracks = []
+        self.filtered_tracks = []
+        self.current_page = 1
+        self.total_pages = 1
+        self._current_playlist_path = new_path
+        self._modified = False
+        self._db_cache = None
+
+        self.pm.record_playlist_usage(new_path)
+        self._add_to_recent_combo(new_path)
+
+        logger.info(f"Nueva playlist creada: {new_path}")
 
     def is_modified(self):
         return self._modified

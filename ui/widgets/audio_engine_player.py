@@ -11,10 +11,12 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from core.cue_bus import get_cue_bus
+from ui.styles import icon_btn_qss
+
 from .deck_bpm import DeckBpmMixin
 from .deck_controls import DeckControlsMixin
 from .deck_vinyl import DeckVinylMixin, GenreLabel, VinylWidget
-from ui.styles import icon_btn_qss
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +107,11 @@ class AudioEnginePlayerWidget(DeckVinylMixin, DeckControlsMixin, DeckBpmMixin, Q
             except Exception as e:
                 logger.warning(f"Deck {name}: no s'ha pogut crear CUE player: {e}")
 
+        # Connecta al bus global de CUE per exclusió mutua amb editor i llistes
+        _bus = get_cue_bus()
+        _bus.cue_started.connect(self._on_global_cue_started)
+        _bus.cue_stopped.connect(self._on_global_cue_stopped)
+
         self._setup_ui()
 
     def _setup_ui(self):
@@ -153,21 +160,22 @@ class AudioEnginePlayerWidget(DeckVinylMixin, DeckControlsMixin, DeckBpmMixin, Q
             )
             bpm_layout.addWidget(lbl)
             self._beat_labels.append(lbl)
-        # Botones -10, -5, -1 — padding 0 per evitar que APP_GLOBAL_QSS (6px 12px) els faci invisibles a 24x20 (fix DJ velocitat)
+        # Botones -10, -5, -1 — padding 0 per evitar que APP_GLOBAL_QSS (6px 12px) els faci invisibles
+        # a 28x22 (fix DJ velocitat). Font 10px bold perquè els numeros es llegeixin (v4.54.8)
         for delta in [-10, -5, -1]:
             btn = QPushButton(f"{delta:+d}")
-            btn.setFixedSize(24, 20)
+            btn.setFixedSize(28, 22)
             btn.setStyleSheet(
-                "font-size: 8px; background: #333; color: white; border: 1px solid #444; border-radius: 3px; padding: 0px;"
+                "font-size: 10px; font-weight: bold; background: #333; color: white; border: 1px solid #444; border-radius: 3px; padding: 0px;"
             )
             btn.clicked.connect(lambda checked, d=delta: self.adjust_bpm(d))
             bpm_layout.addWidget(btn)
         # Rate indicator + Reset
         self.lbl_rate = QLabel("100%")
-        self.lbl_rate.setFixedSize(40, 18)
+        self.lbl_rate.setFixedSize(44, 18)
         self.lbl_rate.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.lbl_rate.setStyleSheet(
-            "font-size: 8px; font-weight: bold; color: #aaa; background: #1a1a1a; border: 1px solid #333; border-radius: 3px;"
+            "font-size: 9px; font-weight: bold; color: #aaa; background: #1a1a1a; border: 1px solid #333; border-radius: 3px;"
         )
         bpm_layout.addWidget(self.lbl_rate)
         self.btn_bpm_reset = QPushButton("R")
@@ -178,12 +186,12 @@ class AudioEnginePlayerWidget(DeckVinylMixin, DeckControlsMixin, DeckBpmMixin, Q
         )
         self.btn_bpm_reset.clicked.connect(self._reset_bpm)
         bpm_layout.addWidget(self.btn_bpm_reset)
-        # Botones +1, +5, +10 — padding 0 fix invisibilitat
+        # Botones +1, +5, +10 — padding 0 fix invisibilitat + font 10px bold
         for delta in [1, 5, 10]:
             btn = QPushButton(f"{delta:+d}")
-            btn.setFixedSize(24, 20)
+            btn.setFixedSize(28, 22)
             btn.setStyleSheet(
-                "font-size: 8px; background: #333; color: white; border: 1px solid #444; border-radius: 3px; padding: 0px;"
+                "font-size: 10px; font-weight: bold; background: #333; color: white; border: 1px solid #444; border-radius: 3px; padding: 0px;"
             )
             btn.clicked.connect(lambda checked, d=delta: self.adjust_bpm(d))
             bpm_layout.addWidget(btn)
@@ -566,3 +574,14 @@ qproperty-textFormat: PlainText;
             self.deck.is_paused = False
             self.deck.is_playing = True
             self.deck.play()
+
+    # ── Handlers del bus global de CUE (exclusió mutua amb editor i llistes) ──
+    def _on_global_cue_started(self, filepath: str):
+        """Una altra CUE ha començat globalment. Atura la nostra si és diferent."""
+        if self._cue_playing and self.current_file != filepath:
+            self._stop_cue_internal()
+
+    def _on_global_cue_stopped(self):
+        """Totes les CUEs s'han aturat globalment (canvi de mode)."""
+        if self._cue_playing:
+            self._stop_cue_internal()

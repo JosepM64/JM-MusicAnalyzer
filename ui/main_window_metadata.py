@@ -140,8 +140,32 @@ class MainWindowMetadataMixin:
         try:
             if hasattr(self, "player_widget"):
                 self.player_widget.stop()
+            # --- Carátula pendiente desde CoverWidget (JPG/PNG) ---
+            cover_data, cover_mime = (None, None)
+            cover_removed = False
+            try:
+                cw = getattr(self, "cover_widget", None)
+                if cw is not None:
+                    if cw.has_pending_cover():
+                        cover_data, cover_mime = cw.pending_cover_data()
+                    elif cw.is_removed():
+                        cover_removed = True
+            except Exception:
+                pass
             for fp in filepaths:
-                self.metadata_service.save_from_panel(fp, data)
+                save_data = dict(data)
+                if cover_data:
+                    save_data["cover_data"] = cover_data
+                    save_data["cover_mime"] = cover_mime or "image/jpeg"
+                elif cover_removed:
+                    save_data["cover_removed"] = True
+                self.metadata_service.save_from_panel(fp, save_data)
+            try:
+                cw = getattr(self, "cover_widget", None)
+                if cw is not None:
+                    cw.clear_pending_flag()
+            except Exception:
+                pass
             self._refresh_current_view()
             count = len(filepaths)
             self.statusBar().showMessage(
@@ -283,6 +307,10 @@ class MainWindowMetadataMixin:
         except Exception as e:
             logger.error(f"Error deleting track from DB: {e}")
         self._refresh_current_view()
+        try:
+            self._update_tracks_count()
+        except Exception:
+            pass
         self.statusBar().showMessage(
             f"Archivo eliminado: {os.path.basename(filepath)}", 3000
         )
@@ -293,6 +321,10 @@ class MainWindowMetadataMixin:
         except Exception as e:
             logger.error(f"Error updating moved track: {e}")
         self._refresh_current_view()
+        try:
+            self._update_tracks_count()
+        except Exception:
+            pass
         self.statusBar().showMessage("Archivo movido", 3000)
 
     def _on_file_delete_requested(self, filepath):

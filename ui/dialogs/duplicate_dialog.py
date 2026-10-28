@@ -5,9 +5,12 @@ from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
+    QGroupBox,
     QHBoxLayout,
     QHeaderView,
     QLabel,
+    QListWidget,
+    QListWidgetItem,
     QMessageBox,
     QPushButton,
     QTableWidget,
@@ -57,14 +60,44 @@ class DuplicateDialog(QDialog):
 
         layout.addLayout(mode_layout)
 
+        # Panell de carpetes on cercar (favorits + altres)
+        folder_box = QGroupBox("Carpetes on cercar duplicats")
+        folder_lay = QVBoxLayout(folder_box)
+        self.folder_list = QListWidget()
+        self.folder_list.setMaximumHeight(110)
+        self.folder_list.setToolTip(
+            "Desmarca les carpetes que no vols incloure a la cerca"
+        )
+        for display, kind, path in self._collect_folders():
+            item = QListWidgetItem(display)
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            item.setCheckState(Qt.CheckState.Checked)
+            item.setData(Qt.ItemDataRole.UserRole, (kind, path))
+            self.folder_list.addItem(item)
+        self.folder_list.itemChanged.connect(self._scan_duplicates)
+        folder_lay.addWidget(self.folder_list)
+
+        folder_btns = QHBoxLayout()
+        self.btn_all_folders = QPushButton("Totes")
+        self.btn_all_folders.clicked.connect(lambda: self._set_all_folders(True))
+        self.btn_no_folders = QPushButton("Cap")
+        self.btn_no_folders.clicked.connect(lambda: self._set_all_folders(False))
+        folder_btns.addWidget(self.btn_all_folders)
+        folder_btns.addWidget(self.btn_no_folders)
+        folder_btns.addStretch()
+        folder_lay.addLayout(folder_btns)
+        layout.addWidget(folder_box)
+
         # Tabla de resultados
         self.table = QTableWidget()
-        self.table.setColumnCount(9)
+        self.table.setColumnCount(11)
         self.table.setHorizontalHeaderLabels(
             [
                 "▶",
                 "Grupo",
                 "Archivo",
+                "Artista",
+                "Título",
                 "Duración",
                 "Bitrate",
                 "Tamaño",
@@ -73,11 +106,18 @@ class DuplicateDialog(QDialog):
                 "Eliminar",
             ]
         )
+        # Selecció llegible (fons blau + text blanc, mai blanc sobre blanc)
+        self.table.setStyleSheet(
+            "QTableWidget::item:selected { background-color: #0078d4; color: white; }"
+            "QTableWidget::item:selected:!active { background-color: #005a9e; color: white; }"
+        )
         # Columnas con ancho fijo
         self.table.setColumnWidth(0, 35)  # Play
         self.table.setColumnWidth(1, 70)  # Grupo
         self.table.setColumnWidth(2, 200)  # Archivo
-        self.table.setColumnWidth(3, 60)  # Duración
+        self.table.setColumnWidth(3, 130)  # Artista
+        self.table.setColumnWidth(4, 180)  # Título
+        self.table.setColumnWidth(5, 60)  # Duración
         self.table.horizontalHeader().setSectionResizeMode(
             2, QHeaderView.ResizeMode.Interactive
         )  # Archivo
@@ -179,6 +219,51 @@ class DuplicateDialog(QDialog):
             "effective_bitrate": effective_br,
         }
 
+    def _collect_folders(self):
+        """Llista d'entrades (display, kind, path): favorits + pares no coberts."""
+        norm_dirs = set()
+        for fp in self.analyzed_files:
+            nfp = os.path.normpath(fp).replace("\\", "/")
+            norm_dirs.add(os.path.dirname(nfp))
+        favs = []
+        try:
+            from services.bookmarks_manager import BookmarksManager
+
+            for b in BookmarksManager().load_bookmarks():
+                p = b.get("path", b) if isinstance(b, dict) else b
+                if p:
+                    favs.append(os.path.normpath(p).replace("\\", "/"))
+        except Exception:
+            pass
+        favs = sorted(set(favs))
+        entries = [(f, "fav", f) for f in favs]
+        others = sorted(
+            d
+            for d in norm_dirs
+            if not any(d == f or d.startswith(f + "/") for f in favs)
+        )
+        entries.extend((d, "dir", d) for d in others)
+        return entries
+
+    def _set_all_folders(self, checked):
+        state = (
+            Qt.CheckState.Checked if checked else Qt.CheckState.Unchecked
+        )
+        self.folder_list.blockSignals(True)
+        for i in range(self.folder_list.count()):
+            self.folder_list.item(i).setCheckState(state)
+        self.folder_list.blockSignals(False)
+        self._scan_duplicates()
+
+    def _selected_scope(self):
+        favs, dirs = set(), set()
+        for i in range(self.folder_list.count()):
+            item = self.folder_list.item(i)
+            if item.checkState() == Qt.CheckState.Checked:
+                kind, path = item.data(Qt.ItemDataRole.UserRole)
+                (favs if kind == "fav" else dirs).add(path)
+        return favs, dirs
+
     def _scan_duplicates(self):
         mode = self.cb_mode.currentIndex()
         self.duplicates = []
@@ -193,6 +278,9 @@ class DuplicateDialog(QDialog):
 
         self.analyzed_files = normalized_files
 
+        # Filtre per carpetes seleccionades al panell
+        fav_sel, dir_sel = self._selected_scope()
+
         # Obtener carpeta raíz para comparaciones
         root_folder = ""
         if self.analyzed_files:
@@ -204,6 +292,11 @@ class DuplicateDialog(QDialog):
 
         for fp, mf in self.analyzed_files.items():
             if not os.path.exists(fp):
+                continue
+            folder = os.path.dirname(fp)
+            if folder not in dir_sel and not any(
+                folder == f or folder.startswith(f + "/") for f in fav_sel
+            ):
                 continue
 
             # Determinar si es MusicFile o dict
@@ -267,6 +360,8 @@ class DuplicateDialog(QDialog):
                         "path": fp,
                         "filename": os.path.basename(fp),
                         "folder": os.path.dirname(fp),
+                        "title": title,
+                        "artist": artist,
                         "duration": duration_val,
                         "bitrate": bitrate_val,
                         "bitrate_real": bitrate_real_val,
@@ -350,6 +445,14 @@ class DuplicateDialog(QDialog):
                 self.table.setItem(row, 2, QTableWidgetItem(f["filename"]))
                 self.table.item(row, 2).setData(Qt.ItemDataRole.UserRole, f["path"])
 
+                # Artista / Título (metadatos)
+                self.table.setItem(
+                    row, 3, QTableWidgetItem(f.get("artist") or "-")
+                )
+                self.table.setItem(
+                    row, 4, QTableWidgetItem(f.get("title") or "-")
+                )
+
                 # Duración
                 dur = f.get("duration")
                 if dur and dur > 0:
@@ -358,7 +461,7 @@ class DuplicateDialog(QDialog):
                     dur_str = f"{mins:02d}:{secs:02d}"
                 else:
                     dur_str = "-"
-                self.table.setItem(row, 3, QTableWidgetItem(dur_str))
+                self.table.setItem(row, 5, QTableWidgetItem(dur_str))
 
                 # Bitrate (mostrar real con detección de fake)
                 br = f.get("bitrate", 0)
@@ -367,19 +470,19 @@ class DuplicateDialog(QDialog):
                     br_str = f"{br}->{br_real} kbps ⚠️"
                 else:
                     br_str = f"{br} kbps"
-                self.table.setItem(row, 4, QTableWidgetItem(br_str))
+                self.table.setItem(row, 6, QTableWidgetItem(br_str))
 
                 # Tamaño
                 size_mb = f.get("size_mb") or 0
                 self.table.setItem(
                     row,
-                    5,
+                    7,
                     QTableWidgetItem(f"{size_mb:.1f} MB" if size_mb > 0 else "-"),
                 )
 
                 # Carpeta
                 folder = f.get("folder", "")
-                self.table.setItem(row, 6, QTableWidgetItem(folder))
+                self.table.setItem(row, 8, QTableWidgetItem(folder))
 
                 # Calidad con razones detalladas
                 is_best = file_idx == 0
@@ -397,7 +500,7 @@ class DuplicateDialog(QDialog):
                 item_qual.setForeground(
                     QColor("#22aa22") if is_best else QColor("#dd3333")
                 )
-                self.table.setItem(row, 7, item_qual)
+                self.table.setItem(row, 9, item_qual)
 
                 # Checkbox
                 chk = QTableWidgetItem()
@@ -405,16 +508,23 @@ class DuplicateDialog(QDialog):
                     Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled
                 )
                 chk.setCheckState(Qt.CheckState.Unchecked)
-                self.table.setItem(row, 8, chk)
+                self.table.setItem(row, 10, chk)
 
                 # Resaltar el mejor con color más claro
                 if is_best:
-                    for c in range(9):
+                    for c in range(self.table.columnCount()):
                         if self.table.item(row, c):
                             self.table.item(row, c).setBackground(best_bg)
 
+        n_folders = self.folder_list.count()
+        n_sel = sum(
+            1
+            for i in range(n_folders)
+            if self.folder_list.item(i).checkState() == Qt.CheckState.Checked
+        )
         self.lbl_info.setText(
-            f"Se encontraron {len(self.duplicates)} grupos con {total_dupes} archivos duplicados"
+            f"Se encontraron {len(self.duplicates)} grupos con {total_dupes} archivos duplicados "
+            f"({n_sel}/{n_folders} carpetas)"
         )
 
     def _preview_file(self, filepath, row):
@@ -437,7 +547,7 @@ class DuplicateDialog(QDialog):
         # Marcar esta fila como reproduciendo
         self.current_playing_row = row
         playing_bg = QColor(0, 100, 200, 60)  # Azul transparente
-        for c in range(9):
+        for c in range(self.table.columnCount()):
             if self.table.item(row, c):
                 self.table.item(row, c).setBackground(playing_bg)
 
@@ -445,14 +555,14 @@ class DuplicateDialog(QDialog):
         if row < 0:
             return
         # Quitar el indicador azul y restaurar el color original si es el "mejor"
-        item7 = self.table.item(row, 7)
+        item9 = self.table.item(row, 9)
         is_best = (
             row < self.table.rowCount()
-            and item7 is not None
-            and item7.text() == "✓ MEJOR"
+            and item9 is not None
+            and item9.text() == "✓ MEJOR"
         )
         bg = QColor(0, 100, 0, 60) if is_best else QColor(255, 255, 255)
-        for c in range(9):
+        for c in range(self.table.columnCount()):
             if self.table.item(row, c):
                 self.table.item(row, c).setBackground(bg)
 
@@ -475,8 +585,8 @@ class DuplicateDialog(QDialog):
                 current_group = group_text
                 group_rows = []
 
-            # Obtener score de calidad (columna 7)
-            score_item = self.table.item(row, 7)
+            # Obtener score de calidad (columna Calidad)
+            score_item = self.table.item(row, 9)
             score_text = score_item.text() if score_item else "0"
 
             # Extraer el número de kbps del texto (ej: "✓ 320 kbps" o "128 kbps")
@@ -508,7 +618,7 @@ class DuplicateDialog(QDialog):
                 items.sort(key=lambda x: x[1])
                 # Seleccionar el primero (peor calidad)
                 worst_row = items[0][0]
-                chk = self.table.item(worst_row, 8)
+                chk = self.table.item(worst_row, 10)
                 if chk:
                     chk.setCheckState(Qt.CheckState.Checked)
                     selected_count += 1
@@ -528,10 +638,10 @@ class DuplicateDialog(QDialog):
             )
 
     def _delete_selected(self):
-        # Recoger archivos a eliminar (columna 8 = Eliminar)
+        # Recoger archivos a eliminar (columna Eliminar)
         to_delete = []
         for row in range(self.table.rowCount()):
-            chk = self.table.item(row, 8)
+            chk = self.table.item(row, 10)
             if chk and chk.checkState() == Qt.CheckState.Checked:
                 path_item = self.table.item(row, 2)
                 if path_item:

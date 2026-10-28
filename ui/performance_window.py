@@ -143,6 +143,16 @@ class PerformanceWindow(
         self._compact_sc = QShortcut(QKeySequence(Qt.Key.Key_Space), self)
         self._compact_sc.activated.connect(self._toggle_compact_mode)
 
+        # Pantalla completa (F11) + maximitzat per defecte
+        self._was_maximized = False
+        self._first_show = True
+        self._fs_sc = QShortcut(QKeySequence(Qt.Key.Key_F11), self)
+        self._fs_sc.setContext(Qt.ShortcutContext.WindowShortcut)
+        self._fs_sc.activated.connect(self._toggle_fullscreen)
+        self._esc_sc = QShortcut(QKeySequence(Qt.Key.Key_Escape), self)
+        self._esc_sc.setContext(Qt.ShortcutContext.WindowShortcut)
+        self._esc_sc.activated.connect(self._exit_fullscreen)
+
         logger.info("Connecting signals...")
         self.playlist_widget.playlistReady.connect(self._on_playlist_ready)
         self.playlist_widget.playlistReady.connect(self._update_master_playlist_label)
@@ -161,6 +171,27 @@ class PerformanceWindow(
         logger.info(
             f"=== PerformanceWindow.__init__ TOTAL: {time.perf_counter() - t0:.3f}s ==="
         )
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        if getattr(self, "_first_show", True):
+            self._first_show = False
+            if not self.isFullScreen():
+                self.showMaximized()
+
+    def _toggle_fullscreen(self):
+        if self.isFullScreen():
+            if getattr(self, "_was_maximized", False):
+                self.showMaximized()
+            else:
+                self.showNormal()
+        else:
+            self._was_maximized = self.isMaximized()
+            self.showFullScreen()
+
+    def _exit_fullscreen(self):
+        if self.isFullScreen():
+            self._toggle_fullscreen()
 
     def closeEvent(self, event):
         # Comprovar si la master playlist té canvis no guardats
@@ -223,6 +254,11 @@ class PerformanceWindow(
                 self.master_engine.stop()
             except Exception:
                 pass
+
+        # Atura totes les CUEs del DJ al tancar la finestra
+        from core.cue_bus import get_cue_bus
+
+        get_cue_bus().cue_stopped.emit()
 
         self.closed.emit()
         super().closeEvent(event)

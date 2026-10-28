@@ -4,6 +4,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QGridLayout, QGroupBox, QHBoxLayout, QLabel, QWidget
 
 from core.models import TechnicalInfo
+from ui.tokens import TEXT_100, TEXT_60
 
 
 class TechnicalPanel(QGroupBox):
@@ -36,10 +37,12 @@ class TechnicalPanel(QGroupBox):
             row = i // 2
             col = (i % 2) * 2
             t_label = QLabel(text)
-            t_label.setStyleSheet("font-weight: bold; color: #555; font-size: 10px;")
+            t_label.setStyleSheet(
+                f"font-weight: bold; color: {TEXT_60}; font-size: 10px;"
+            )
 
             v_label = QLabel("N/A")
-            v_label.setStyleSheet("color: #000; font-size: 10px;")
+            v_label.setStyleSheet(f"color: {TEXT_100}; font-size: 10px;")
 
             layout.addWidget(t_label, row, col)
             layout.addWidget(v_label, row, col + 1)
@@ -154,10 +157,10 @@ class TechnicalPanel(QGroupBox):
             # --- GRIS: Sin datos ---
             self.status_indicator.setText("–")
             self.status_indicator.setStyleSheet(
-                "color: #888; font-size: 18px; font-weight: bold;"
+                f"color: {TEXT_60}; font-size: 18px; font-weight: bold;"
             )
             self.status_detail.setText("Análisis espectral no disponible")
-            self.status_detail.setStyleSheet("color: #888; font-size: 11px;")
+            self.status_detail.setStyleSheet(f"color: {TEXT_60}; font-size: 11px;")
             self.status_indicator.setToolTip(
                 "El análisis espectral requiere ffmpeg.exe en la carpeta 'tools/' del programa.\n"
                 "Puedes descargarlo ejecutando: download_ffmpeg.bat\n"

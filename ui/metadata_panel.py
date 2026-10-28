@@ -110,50 +110,36 @@ class MetadataPanel(QGroupBox):
         row = 0
         grid.addWidget(QLabel("Título"), row, 0)
         self.fields["title"] = QLineEdit()
-        self.fields["title"].setMaximumHeight(20)
+        self.fields["title"].setMaximumHeight(24)
         self.fields["title"].setStyleSheet(INPUT_FIELD_STYLE)
         grid.addWidget(self.fields["title"], row, 1, 1, 5)
 
         row = 1
         grid.addWidget(QLabel("Artista"), row, 0)
         self.fields["artist"] = QLineEdit()
-        self.fields["artist"].setMaximumHeight(20)
+        self.fields["artist"].setMaximumHeight(24)
         self.fields["artist"].setStyleSheet(INPUT_FIELD_STYLE)
         grid.addWidget(self.fields["artist"], row, 1, 1, 3)
 
         grid.addWidget(QLabel("Álbum"), row, 4)
         self.fields["album"] = QLineEdit()
-        self.fields["album"].setMaximumHeight(20)
+        self.fields["album"].setMaximumHeight(24)
         self.fields["album"].setStyleSheet(INPUT_FIELD_STYLE)
         grid.addWidget(self.fields["album"], row, 5, 1, 3)
 
         row = 2
         grid.addWidget(QLabel("Género"), row, 0)
         self.fields["genre"] = QLineEdit()
-        self.fields["genre"].setMaximumHeight(20)
+        self.fields["genre"].setMaximumHeight(24)
         self.fields["genre"].setStyleSheet(INPUT_FIELD_STYLE)
-        grid.addWidget(self.fields["genre"], row, 1, 1, 2)
+        grid.addWidget(self.fields["genre"], row, 1, 1, 5)
 
-        grid.addWidget(QLabel("BPM"), row, 3)
+        grid.addWidget(QLabel("BPM"), row, 6)
         self.fields["bpm"] = QLineEdit()
-        self.fields["bpm"].setMaximumHeight(20)
+        self.fields["bpm"].setMaximumHeight(24)
         self.fields["bpm"].setMaximumWidth(45)
         self.fields["bpm"].setStyleSheet(INPUT_FIELD_STYLE)
-        grid.addWidget(self.fields["bpm"], row, 4)
-
-        grid.addWidget(QLabel("Año"), row, 5)
-        self.fields["year"] = QLineEdit()
-        self.fields["year"].setMaximumHeight(20)
-        self.fields["year"].setMaximumWidth(45)
-        self.fields["year"].setStyleSheet(INPUT_FIELD_STYLE)
-        grid.addWidget(self.fields["year"], row, 6)
-
-        grid.addWidget(QLabel("Trk"), row, 7)
-        self.fields["track_number"] = QLineEdit()
-        self.fields["track_number"].setMaximumHeight(20)
-        self.fields["track_number"].setMaximumWidth(30)
-        self.fields["track_number"].setStyleSheet(INPUT_FIELD_STYLE)
-        grid.addWidget(self.fields["track_number"], row, 8)
+        grid.addWidget(self.fields["bpm"], row, 7)
 
         row = 3
         rating_box = QWidget()
@@ -169,7 +155,7 @@ class MetadataPanel(QGroupBox):
 
         grid.addWidget(QLabel("Comentario"), row, 2)
         self.fields["comment"] = QLineEdit()
-        self.fields["comment"].setMaximumHeight(20)
+        self.fields["comment"].setMaximumHeight(24)
         self.fields["comment"].setStyleSheet(INPUT_FIELD_STYLE)
         grid.addWidget(self.fields["comment"], row, 3, 1, 6)
 
@@ -382,6 +368,17 @@ class MetadataPanel(QGroupBox):
         if path:
             if self.bookmarks_manager.add_bookmark(path):
                 self.refresh_bookmarks()
+                self._notify_tree_changed()
+
+    def _notify_tree_changed(self):
+        """Avisa la MainWindow perquè recarregui l'arbre lateral."""
+        try:
+            win = self.window()
+            refresh = getattr(win, "_refresh_folder_tree", None)
+            if callable(refresh):
+                refresh()
+        except Exception:
+            pass
 
     def _on_manage_favorites_clicked(self):
         from ui.dialogs.favorites_manager_dialog import FavoritesManagerDialog
@@ -389,6 +386,7 @@ class MetadataPanel(QGroupBox):
         dlg = FavoritesManagerDialog(self)
         dlg.exec()
         self.refresh_bookmarks()
+        self._notify_tree_changed()
 
     def _on_save_clicked(self):
         if self._batch_count > 1 and self._modified_fields:
@@ -401,6 +399,9 @@ class MetadataPanel(QGroupBox):
         else:
             data = {key: field.text() for key, field in self.fields.items()}
             data["rating"] = self.rating_edit.rating
+        for key in ("year", "track_number"):
+            if key not in data:
+                data[key] = (self._original_data or {}).get(key, "")
         self.saveRequested.emit(data)
         self._modified_fields.clear()
 
@@ -426,8 +427,6 @@ class MetadataPanel(QGroupBox):
         self.fields["artist"].setText(metadata.artist or "")
         self.fields["album"].setText(metadata.album or "")
         self.fields["genre"].setText(metadata.genre or "")
-        self.fields["year"].setText(metadata.year or "")
-        self.fields["track_number"].setText(metadata.track_number or "")
         self.fields["bpm"].setText(str(metadata.bpm) if metadata.bpm else "")
         self.fields["comment"].setText(metadata.comment or "")
         self.rating_edit.set_rating(metadata.rating)

@@ -111,7 +111,7 @@ DARK_METADATA_DIALOG_STYLE = f"""
 
 # Deprecated white-on-dark — kept for compat, do not use in new code
 INPUT_FIELD_STYLE = (
-    f"color: {TEXT_100}; background-color: {BG_400}; border: {BORDER_W}px solid {STROKE_400}; font-size: 10px; font-family: {FONT_FAMILY};"
+    f"color: {TEXT_100}; background-color: {BG_400}; border: {BORDER_W}px solid {STROKE_400}; font-size: 10px; font-family: {FONT_FAMILY}; padding: 2px 4px;"
 )
 
 # ── New global system (isolated, reversible) ─────────────────
@@ -157,6 +157,8 @@ QSlider::handle:vertical {{ background: {PRIMARY}; height: 14px; width: 18px; ma
 QSlider:disabled {{ opacity: 0.5; }}
 
 /* Menus */
+QMessageBox {{ background-color: {BG_500}; }}
+QMessageBox QLabel {{ color: {TEXT_100}; }}
 QMenu {{ background-color: {BG_500}; color: {TEXT_80}; border: 1px solid {STROKE_400}; padding: 4px; font-family: {FONT_FAMILY}; }}
 QMenu::item {{ padding: 6px 20px; }}
 QMenu::item:selected {{ background-color: {PRIMARY}; color: {TEXT_100}; }}
@@ -168,12 +170,18 @@ QMenuBar {{ background-color: {BG_900}; color: {TEXT_80}; border-bottom: 1px sol
 QMenuBar::item {{ background: transparent; padding: 5px 10px; }}
 QMenuBar::item:selected {{ background-color: {BG_500}; color: {TEXT_100}; }}
 QMenuBar::item:pressed {{ background-color: {PRIMARY}; color: {TEXT_100}; }}
+/* QToolTip: sense regla pròpia l'estil natiu el pinta amb el tema del sistema
+   (fons blanc + text clar de la paleta fosca = il·legible en alguns PCs) */
+QToolTip {{ background-color: {BG_500}; color: {TEXT_100}; border: 1px solid {STROKE_400}; padding: 4px 6px; font-family: {FONT_FAMILY}; }}
 
 /* Tables */
 QTableWidget {{ background-color: {BG_800}; color: {TEXT_80}; gridline-color: {BG_600}; font-size: 10px; font-family: {FONT_FAMILY}; }}
 QTableWidget::item:selected {{ background-color: #004a80; color: {TEXT_100}; }}
 QHeaderView::section {{ background-color: {BG_600}; color: {TEXT_60}; padding: 4px 6px; font-size: 10px; font-weight: 600; border: none; border-right: 1px solid {BG_400}; border-bottom: 1px solid {STROKE_400}; font-family: {FONT_FAMILY}; }}
 QHeaderView::section:checked {{ background-color: {BG_500}; }}
+/* Cantonada de la taula (entre números de fila i capçalera): sense regla pròpia
+   l'estil natiu la pinta blanca en alguns temes de Windows */
+QTableWidget QTableCornerButton::section {{ background-color: {BG_600}; border: none; border-right: 1px solid {BG_400}; border-bottom: 1px solid {STROKE_400}; }}
 
 /* Progress / Scroll */
 QProgressBar {{ background-color: {BG_800}; border: 1px solid {STROKE_400}; border-radius: 3px; text-align: center; font-size: 9px; color: {TEXT_80}; }}

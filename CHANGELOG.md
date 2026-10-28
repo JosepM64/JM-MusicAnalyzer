@@ -2,6 +2,147 @@
 
 Tots els canvis significatius en aquest projecte es documenten en aquest fitxer.
 
+## [4.54.23] - 2026-10-28
+
+### Fix definitiu: Lista 2 només carregava 1 track (causa arrel = sorting actiu)
+- **Símptoma**: el botó de favorit deia `slow balboa (127 tracks)` però la taula de la Lista 2 (DJ) mostrava **una sola fila** (Harry James — "You Made Me Love You").
+- **Causa arrel**: `ui/widgets/playlist_widget.py` activa `table.setSortingEnabled(True)`. `add_track()` (`ui/widgets/playlist_track_ops.py`) omplia les cel·les per índex de fila; el **primer** `setItem(r, 0, …)` dispara un re-ordenament immediat que mou la fila acabada d'inserir, de manera que tots els `setItem(r, col)` següents escrivien en una fila diferent. Resultat: 127 files inserides, només 1 poblada → `_rebuild_all_tracks_from_table()` en recollia 1. `load_m3u` ja funcionava perquè suspèn el sorting al voltant del bucle massiu, i `_add_track_from_db` no toca la columna 0 (clau d'ordenació).
+- **Fix**:
+  - `ui/widgets/playlist_track_ops.py` → `add_track()` desa `isSortingEnabled()`, crida `setSortingEnabled(False)` abans d'inserir i el restaura en acabar d'omplir (abans del `_rebuild_all_tracks_from_table()` final).
+  - `ui/widgets/playlist_source_loaders.py` → `load_from_favorite_folder()` i `_load_folder_to_list()` suspenen/restauren el sorting al voltant de tot el bucle `os.walk` + `add_track`.
+  - `ruff --select F,I --fix` va resoldre un `I001` preexistent (import `QDialog` fusionat al bloc `PySide6.QtWidgets`).
+- **Verificació offscreen** (carpeta real `C:\Mega\JOSEP\_music\slow balboa`): 127 fitxers al disc → `table rows: 100` (pàgina 1), `all_tracks: 127`, `filtered_tracks: 127`, `page_size: 100`, `total_pages: 2`; taula crua després del bucle: 127 files / 127 a `all_tracks`. `py_compile` OK, `ruff F,I` net.
+- **Build**: `dist\JM-MusicAnalyzer\JM-MusicAnalyzer.exe` (14.696.732 bytes, FileVersion **4.54.23**) — BUILD EXITOSO.
+
+## [4.54.22] - 2026-10-28
+
+### Lista 2: càrrega de favorits directament del disc (primer intent, insuficient)
+- `ui/widgets/playlist_source_loaders.py` → `load_from_favorite_folder()` reescrit per recórrer la carpeta amb `os.walk` i afegir cada fitxer amb `add_track(..., silent=True)`, en lloc de consultar només `db.get_tracks_by_folder()`. Eliminat el `LoadFolderWorker` asíncron que només llegia de la BD.
+- Motiu: el recompte `(127 tracks)` del botó és el nombre de fitxers al disc, però `get_tracks_by_folder()` retorna només les pistes indexades a `library.db`; en aquell moment la BD en tenia 127 (verificat), de manera que la consulta no era el coll d'ampolla real.
+- Fix `B007` (`dirs` → `_dirs`). **No va resoldre el bug** — la causa arrel era el sorting (vegeu 4.54.23).
+
+## [4.54.21] - 2026-10-28
+
+### Preescolta CUE exclusiva entre Editor i DJ
+- **Nou `core/cue_bus.py`**: bus de senyals singleton basat en `QObject` amb `cue_started(str)` i `cue_stopped()` + `get_cue_bus()`. Qualsevol font de CUE l'emet en arrencar/aturar, i totes les altres fonts s'aturen en rebre'l.
+- **Fonts connectades**:
+  - Editor: `ui/widgets/file_list_actions.py` (`_toggle_cue_preview` / `_stop_cue_preview`) i `ui/widgets/file_list_widget.py` (connexió + handlers).
+  - Playlists DJ: `ui/widgets/playlist_cue.py` (`_on_cue_clicked` / `stop_cue`) i `ui/widgets/playlist_widget.py` (connexió + handlers).
+  - Decks DJ: `ui/widgets/deck_controls.py` (`_toggle_cue` / `_stop_cue_internal`) i `ui/widgets/audio_engine_player.py` (connexió + handlers).
+- **Canvi de mode**: `ui/main_window.py` (`_on_switch_to_performance`, `_on_performance_closed`) atura la CUE de l'editor i emet `cue_stopped()`; `ui/performance_window.py` `closeEvent` també emet `cue_stopped()`.
+- **Resultat**: només sona una preescolta a la vegada a tota l'aplicació, i canviar de mode (Editor ↔ DJ) atura la que estigui sonant.
+- **Fix posterior (crash a l'EXE)**: `RuntimeError: libshiboken: You can't initialize an PySide6.QtCore.QObject object in class CueBus twice!` — `QObject.__init__()` es cridava manualment dins de `__new__` i PySide el tornava a cridar. Solució: `__new__` sense inicialització manual, `CueBus.__init__` només fa `super().__init__()`, i `get_cue_bus()` cacheja la instància.
+
+## [4.54.20] - 2026-10-28
+
+### Lista 2 (DJ): botó 🆕 "Crear nueva playlist"
+- `ui/widgets/playlist_widget.py` → nou `btn_new_playlist` (🆕, 28×28, `icon_btn_qss(11)`) només a la playlist master, al costat de 💾.
+- `_on_new_playlist_clicked()`: si hi ha canvis sense desar pregunta Desar/Descartar/Cancel·lar; demana el nom amb `QInputDialog.getText` (afegeix `.m3u` si falta); confirma si el fitxer ja existeix; buida taula i llistes, fixa `_current_playlist_path`, registra l'ús amb `pm.record_playlist_usage` i l'afegeix al combo de recents.
+- `ui/i18n_help.py` → ajuda actualitzada a ES i CA (`<b>🆕 Nueva playlist</b>` / `<b>🆕 Nova playlist</b>`).
+- `JM_MusicAnalizer/__init__.py` → `APP_VERSION` 4.54.19 → 4.54.20. Build OK.
+- **Addicional**: `yt-dlp` actualitzat 2026.10.21 → 2026.10.26 i build refet (bundlat a `_internal/yt_dlp`).
+
+## [4.54.19] - 2026-10-04
+
+### Duplicats: columnes Artista/Títol + selecció llegible
+- **Columnes noves «Artista» i «Títol»** a la graella de resultats (11 columnes; dades ja disponibles a l'entrada, sense tocar BD). Índexs dependents actualitzats (Qualitat→9, Eliminar→10, auto-selecció, preview, doble clic intacte al path).
+- **Fix selecció blanca**: la fila seleccionada es pintava amb fons blanc i text blanc (il·legible, veure foto usuari) → QSS propi `::item:selected` blau (#0078d4, #005a9e inactiu) + text blanc.
+- Test offscreen PASS (capçaleres, contingut, QSS, auto-select pitjor), `ruff --select F` net, `verify_automatica.py` 177/0.
+
+## [4.54.18] - 2026-10-04
+
+### Duplicats: filtre per carpetes dins el diàleg
+- **Nou panell «Carpetes on cercar duplicats»** a `DuplicateDialog` (`ui/dialogs/duplicate_dialog.py`): checklist amb els favorits com a preset + les altres carpetes pares presents a les dades, totes marcades per defecte (comportament anterior intacte).
+- Filtratge abans d'agrupar (`_selected_scope`): coincideix carpeta exacta o subcarpeta d'un favorit marcat; rescaneig en viu en marcar/desmarcar + botons Totes/Cap; el comptador del peu mostra `(X/Y carpetes)`.
+- Sense tocar BD ni `find_duplicates`: només ~40 línies al diàleg. Test offscreen PASS (1 grup amb tot → 0 en desmarcar → Totes/Cap OK), `ruff --select F` net, `verify_automatica.py` 177/0.
+
+## [4.54.17] - 2026-10-04
+
+### Ajuda verificada + català (nou `ui/i18n_help.py` ES/CA) + caràtula editable + contrast info tècnica
+- **Ajuda bilingüe**: els 6 temes del Manager (`?`) i els 4 del DJ (`❓`) surten en castellà o català segons ⚙ Idioma (mateix patró que `ui/i18n_menu.py` v4.54.16; per defecte ES). Títol del diàleg «Ayuda -» / «Ajuda -».
+- **8 errors corregits** (verificats línia a línia contra el codi):
+  - Filtres: no existeix cap combo «Estado» → ara «Género / Rating / BPM» (+ arbre i +⭐).
+  - Reproductor: no és doble clic → «Clic en una fila» (carrega sense reproduir).
+  - Metadatos/Rating: al panell cal GUARDAR (només a la taula es desa sol).
+  - Menú contextual: textos exactes reals (`➕ Añadir a Playlist → 🎧 Añadir a Master Playlist (DJ)`, `📑 Duplicar Archivo`, `📋 Copiar a Carpeta...`, `🚚 Mover Archivo...`, `🗑 Eliminar de Disco`, `🔄 Forçar Lectura Metadades`...).
+  - DJ: «⏭️ MEZCLAR SIGUIENTE YA» no existeix com a botó → «⏭️ CROSSFADER»; «🔁 LOOP» és efecte visual de 15 s (no repeteix àudio); «Fade Time 0.5-10 s» fals → «Fade/Silencio (s)» (±60, negatiu = silenci); «📂 M3U/M3U8 o carpeta» parcial (master només .m3u, carpeta només a LISTA 2); «Arrastrar reordena» fals (drag desactivat); «🔄 Crossfader»/«📢 Master» no són botons.
+- **Nou a l'ajuda**: caràtula 📂/🗑 (s'aplica al GUARDAR), informació tècnica + ✓/✗ espectral, batch (N), `▶ LANZAR MIX`, COMPACT amb matís d'Espai, `🗑 Reset Plays` / `📜 Sessió`.
+- **Caràtula editable** (`ui/widgets/cover_widget.py`, `core/writer/tag_writer.py`, `ui/main_window_metadata.py`): 📂 afegeix/canvia des de JPG/PNG i 🗑 la treu, fins i tot amb «SIN CARÁTULA»; preview immediata, escriptura APIC (jpeg/png) al GUARDAR; al DJ és només lectura.
+- **Fix contrast info tècnica** (`ui/technical_panel.py`): els valors anaven en negre (`#000`) sobre fons fosc (il·legibles a la foto) → text `TEXT_100` + etiquetes `TEXT_60`.
+- **Fallback versió** (`ui/dialogs/about_dialog.py`): `4.43.0` → `4.54.17`.
+- **Verificació**: offscreen PASS (ajuda ES+CA, caràtula jpg/png/remove, APIC write/remove); `verify_automatica.py` 176/0.
+
+## [4.54.16] - 2026-10-04
+
+### Nou: barra de menú en català o castellà (⚙ Ajustos → Idioma)
+- **Abast**: només la barra de menús (Archivo/Editar/Ver/Modo/Eina + accions). Nou `ui/i18n_menu.py` amb diccionari ES/CA + `menu_text()` que llegeix `settings["language"]`; `_setup_menu_bar` hi delega (mateixos textos ES que abans).
+- **Canvi**: selector al diàleg ⚙ + avís bilingüe de reiniciar (s'aplica a l'arrencada, sense re-traducció en calent).
+- **Verificació**: headless PASS (ES→«Archivo/Salir», CA→«Arxiu/Surt», totes les claus amb les dues llengües); `verify_automatica.py` 175/0.
+
+## [4.54.15] - 2026-10-04
+
+### Fix: avisos `QMessageBox` amb fons blanc i text il·legible
+- **Símptoma** (foto usuari): «Lista Limpia» amb fons blanc i text quasi invisible.
+- **Causa** (`ui/styles.py`): el diàleg natiu no tenia regla al QSS (mateixa família que `QMenuBar`/`QToolTip`/`QTableCornerButton`).
+- **Fix**: `QMessageBox` fosc (`BG_500`) + `QMessageBox QLabel` clar (`TEXT_100`) al QSS global; els botons ja eren foscos per la regla `QPushButton`.
+- **Verificació**: offscreen PASS; `verify_automatica.py` 175/0.
+
+## [4.54.14] - 2026-10-04
+
+### Fix: quadre blanc a la cantonada de la graella de l'editor
+- **Símptoma** (foto usuari): cel·la blanca a dalt a l'esquerra de la taula (entre números de fila i capçalera CUE).
+- **Causa** (`ui/styles.py`): el `corner button` del `QTableWidget` no tenia regla pròpia → estil natiu blanc en alguns temes de Windows (mateixa família que `QMenuBar` v4.54.6 i `QToolTip` v4.54.13).
+- **Fix**: regla `QTableWidget QTableCornerButton::section` fosca (`BG_600` + bordes) al QSS global.
+- **Verificació**: offscreen PASS; `verify_automatica.py` 175/0.
+
+## [4.54.13] - 2026-10-04
+
+### Fix: tooltips il·legibles (blancs) en alguns dispositius
+- **Símptoma** (foto usuari): el tooltip dels botons sortia en blanc en uns PCs i bé en uns altres.
+- **Causa** (`ui/styles.py`): `APP_GLOBAL_QSS` no tenia cap regla `QToolTip` → queia a l'estil natiu de Windows (mateixa família que la barra blanca de v4.54.6): fons del sistema + text clar de la paleta fosca = il·legible.
+- **Fix**: regla pròpia `QToolTip` (fons `BG_500`, text `TEXT_100`, borde `STROKE_400`) al QSS global que s'aplica a cada finestra.
+- **Verificació**: offscreen PASS (regla present al QSS, `setStyleSheet` sense error, el text del tooltip es conserva).
+
+## [4.54.12] - 2026-10-04
+
+### Fix: el panell Carpetes sortia buit + `build.bat` no arrencava
+- **Panell buit** (foto usuari): `_load_initial_state` només carregava favorits — amb 0 favorits l'arbre quedava a 0 ítems. Ara `_refresh_folder_tree()` (`ui/main_window.py`) cau a `default_library_dir` i si no hi ha res mostra «Sense favorits — afegeix amb +⭐ o clic dret» (ítem deshabilitat que no filtra) en comptes de buit.
+- **Senyal mort**: `file_tree.addToFavorites` s'emetia al menú contextual però mai connectat → nou `_on_tree_add_favorite()` que desa el favorit i refresca arbre + combo; `+⭐`/`⚙` del panell (`ui/metadata_panel.py`) avisen la finestra via `_notify_tree_changed()`; obrir amb 📁 recarrega si cal (`ui/main_window_menu.py:_on_toggle_folder_tree`).
+- **Build aturat**: tots els `.bat` (`build.bat`, `run.bat`, `scripts/cleanup_dist.bat`, `copy_qt_dlls.bat`, `backup_before_commit.bat`) tenien salts LF (Unix) i `cmd.exe` exigeix CRLF → el build s'encallava sense imprimir res (log a 0 bytes, `dist` intacte). Convertits a CRLF sense tocar contingut.
+- **Verificació**: headless offscreen PASS (placeholder, clic no filtra, carpeta/favorit carreguen, senyal connectat, fallback a biblioteca); `verify_automatica.py` 175/0.
+
+## [4.54.11] - 2026-09-26
+
+### Millora: el ⏱ de la DJ mostra el compte enrere del fade
+- El label sobre CROSSFADER (`lbl_transition_timer`) mostrava «CAMBIANDO...» sense més; ara ensenya els segons restants (`⏱ 4.8s`) calculats de distància/restant del crossfader × durada del fade, i torna a `⏱ --` en acabar.
+- **Verificació**: simulació headless (inici → «CAMBIANDO...» → 5.0s → 4.8s… decreixent → `⏱ --`) PASS; `verify_automatica.py` 175/0.
+
+## [4.54.10] - 2026-09-26
+
+### Fix: l'ordre de la Master es perdia (última pista no sonava + silenci amb loads manuals)
+- **Símptoma** (usuari): amb SKIP, càrregues manuals a l'altre plat i crossfaders manuals, l'ordre de la Master es perdia («embolic»).
+- **Causa 1** (`ui/perf_window_transition.py`, `_start_transition`): amb la cua exhaurida (`_playlist_index >= len`) avortava TOTA la transició → **l'última pista preparada no sonava mai** en automix.
+- **Causa 2** (mateix fitxer): el deck destí només rebia `play()` si el flag `_deck_started` era fals; un load manual posterior (deck recarregat en pausa) o una càrrega en el moment deixaven el deck mut → **silenci amb el crossfader al seu costat** i sessió encallada.
+- **Fix**: si queda pista preparada es fa la transició igual sense carregar; el destí rep `play()` segons l'**estat real** (`playbackState()`, helper `_deck_is_playing`) en les dues branques (normal i SKIP+MEZCLAR).
+- **Verificació**: simulació headless amb decks falsos (7 escenaris: automix complet, SKIP definitiu, crossfade manual + load manual, destí buit, SKIP+MEZCLAR, via `_check_automix`, mode silenci) → **17/17 PASS**; el compacte usa els mateixos mètodes (només visibilitat) → cobert. `verify_automatica.py` 175/0.
+
+## [4.54.9] - 2026-09-26
+
+### Millores: log rotatiu, botons a la principal, plays de sessió compartits, camps d'editor
+- **Log** (`utils/logging_utils.py`, `main.py`): `RotatingFileHandler` 2MB × 3 còpies + nivell INFO — `jm_music_analyzer.log` ja no creix sense límit (màx ~8 MB).
+- **Principal** (`ui/main_window_menu.py`, `ui/dialogs/settings_dialog.py`, `services/settings_manager.py`, `ui/main_window_scan.py`): botons 🎧 (àudio) i ⚙ (ajustos) al toolbar + `default_library_dir` que obre «Seleccionar carpeta» ja situat a la biblioteca.
+- **Sessió** (`ui/widgets/playlist_play_counts.py`, `playlist_widget.py`): comptador únic compartit entre llistes amb refresh en viu creuat i claus normalitzades + botó 📜 Sessió (punxades en ordre fins al Reset, que ho buida tot a tot arreu).
+- **Editor** (`ui/metadata_panel.py`, `ui/styles.py`, `ui/perf_window_ui.py`): camps a 24px + `padding: 2px 4px` propi — el QSS global (`padding: 5px` ≈ 26px necessaris vs 20px de caixa) tallava el text.
+- **Verificació**: tests offscreen PASS, `verify_automatica.py` 175/0, `ruff --select F` net d'afegits.
+
+## [4.54.8] - 2026-09-26
+
+### Nou: LOOP amb bordes de colors per secció + F11 pantalla completa + reload d'àudio amb reinici assistit
+- **LOOP** (`ui/perf_window_transition.py`): fora l'overlay full-screen que tapava els decks; ara cada secció té el seu **borde de color rotatiu** (Master Playlist, Llista 2, panell info, mixer) + decks amb gradient com abans. Causa arrel trobada i resolta: els `border` QSS **no pinten en subclasses de `QWidget` sense `WA_StyledBackground`** (verificat a píxel 0/254 → 254/254); el flag s'activa durant el LOOP i es restaura després amb els estils originals.
+- **F11** (`ui/performance_window.py`): la finestra DJ s'obre **maximitzada per defecte** (`showEvent` + `showMaximized`); **F11** alterna pantalla completa real (tapa la barra de tasques de Windows) i **Esc** en surt tornant a l'estat anterior.
+- **Àudio en calent** (`ui/dialogs/audio_config_dialog.py`, `services/audio_hardware_service.py`): botó **«🔄 Recargar»** que redetecta dispositius (DAC USB…) sense tocar cap stream — la música no para; els nous apareixen com `[nou 🆕]` via Qt. Límit honest del backend: PortAudio només escaneja a l'inici, així que si el 🆕 no el veu el motor, en desar s'avisa i s'ofereix **«Reiniciar ara»** (reobre l'app sola amb la config desada); `find_device_by_id` amb **match per tokens** perquè el DAC es resolgui sol després del reinici.
+- **Verificació**: tests offscreen PASS (bordes/píxels, reload, restart-flow), `verify_automatica.py` 175/0, `ruff --select F` net d'afegits.
+
 ## [4.54.7] - 2026-09-15
 
 ### Fix: descàrrega amb URL enganxada — la ruta del fitxer era incorrecta

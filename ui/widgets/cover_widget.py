@@ -1,7 +1,7 @@
 import logging
 import os
 
-from PySide6.QtCore import QSize, Qt
+from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import (
     QFileDialog,
@@ -26,14 +26,21 @@ class CoverWidget(QWidget):
     - Guardar carátula a disc
     - Obrir carátula al visor del sistema
     - El botó de guardar només apareix si hi ha carátula
+    - Afegir/canviar carátula des d'un JPG/PNG (només mode edició)
     """
 
-    def __init__(self, size=150):
+    coverChanged = Signal()
+
+    def __init__(self, size=150, editable=True):
         super().__init__()
         self.cover_size = size
+        self.editable = editable
         self._cover_data = None
         self._mime_type = "image/jpeg"
+        self._pending_cover = False
+        self._removed = False
         self._setup_ui()
+        self._update_edit_buttons()
 
     def _setup_ui(self):
         v_layout = QVBoxLayout(self)
@@ -81,20 +88,70 @@ class CoverWidget(QWidget):
         self.btn_open.clicked.connect(self._on_open_cover)
         btn_row.addWidget(self.btn_open)
 
+        self.btn_add = QPushButton("\U0001f4c2")
+        self.btn_add.setToolTip("Añadir / cambiar carátula desde imagen (JPG/PNG)")
+        self.btn_add.setFixedSize(24, 18)
+        self.btn_add.setStyleSheet(
+            icon_btn_qss(9, "background: #444; border-radius: 2px; border: none;")
+            + "QPushButton:hover { background: #666; }"
+        )
+        self.btn_add.clicked.connect(self._on_add_cover)
+        btn_row.addWidget(self.btn_add)
+
+        self.btn_remove = QPushButton("\U0001f5d1")
+        self.btn_remove.setToolTip("Quitar carátula (se aplica al GUARDAR)")
+        self.btn_remove.setFixedSize(24, 18)
+        self.btn_remove.setStyleSheet(
+            icon_btn_qss(9, "background: #444; border-radius: 2px; border: none;")
+            + "QPushButton:hover { background: #666; }"
+        )
+        self.btn_remove.clicked.connect(self._on_remove_cover)
+        btn_row.addWidget(self.btn_remove)
+
         btn_row.addStretch()
         v_layout.addLayout(btn_row)
 
-    def set_cover(self, data: bytes, mime_type: str = "image/jpeg"):
+    def _update_edit_buttons(self):
+        show_add = self.editable
+        show_remove = self.editable and bool(self._cover_data)
+        self.btn_add.setVisible(show_add)
+        self.btn_remove.setVisible(show_remove)
+
+    def has_pending_cover(self) -> bool:
+        return self._pending_cover and bool(self._cover_data)
+
+    def is_removed(self) -> bool:
+        return self._removed
+
+    def pending_cover_data(self):
+        return (self._cover_data, self._mime_type) if self.has_pending_cover() else (None, None)
+
+    def clear_pending_flag(self):
+        self._pending_cover = False
+        self._removed = False
+
+    def set_editable(self, editable: bool):
+        self.editable = editable
+        self._update_edit_buttons()
+
+    def set_cover(self, data: bytes, mime_type: str = "image/jpeg", from_user: bool = False):
         if not data:
             self.clear()
             return
         try:
             image = QImage()
             if not image.loadFromData(data):
-                self.clear()
+                if not from_user:
+                    self.clear()
                 return
             self._cover_data = data
             self._mime_type = mime_type
+            if from_user:
+                self._pending_cover = True
+                self._removed = False
+            else:
+                self._pending_cover = False
+                self._removed = False
             pixmap = QPixmap.fromImage(image)
             scaled_pixmap = pixmap.scaled(
                 self.cover_size,
@@ -108,11 +165,42 @@ class CoverWidget(QWidget):
             )
             self.btn_save.setVisible(True)
             self.btn_open.setVisible(True)
+            self._update_edit_buttons()
+            if from_user:
+                self.coverChanged.emit()
         except Exception as e:
             logger.error(f"Error al procesar car\u00e1tula: {e}")
-            self.clear()
+            if not from_user:
+                self.clear()
 
-    def clear(self):
+    def set_cover_from_file(self, path: str) -> bool:
+        """Carga una carátula desde un JPG/PNG de disco (preview, pendiente de GUARDAR)."""
+        try:
+            if not path or not os.path.exists(path):
+                return False
+            with open(path, "rb") as f:
+                data = f.read()
+            if not data:
+                return False
+            image = QImage()
+            if not image.loadFromData(data):
+                return False
+            ext = os.path.splitext(path)[1].lower()
+            mime = "image/png" if ext == ".png" else "image/jpeg"
+            self.set_cover(data, mime, from_user=True)
+            return True
+        except Exception as e:
+            logger.error(f"Error cargando carátula desde {path}: {e}")
+            return False
+
+    def clear(self, from_user: bool = False):
+        if from_user:
+            # Marcar para borrar al GUARDAR, pero mantener preview "SIN CARÁTULA"
+            self._removed = True
+            self._pending_cover = False
+        else:
+            self._removed = False
+            self._pending_cover = False
         self._cover_data = None
         if self.lbl_image:
             self.lbl_image.setPixmap(QPixmap())
@@ -128,6 +216,28 @@ class CoverWidget(QWidget):
             """)
         self.btn_save.setVisible(False)
         self.btn_open.setVisible(False)
+        self._update_edit_buttons()
+        if from_user:
+            self.coverChanged.emit()
+
+    def _on_add_cover(self):
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Seleccionar carátula",
+            "",
+            "Imágenes (*.jpg *.jpeg *.png);;JPEG (*.jpg *.jpeg);;PNG (*.png);;Todos (*)",
+        )
+        if not path:
+            return
+        if not self.set_cover_from_file(path):
+            QMessageBox.warning(
+                self, "Carátula", "No se pudo leer la imagen seleccionada."
+            )
+
+    def _on_remove_cover(self):
+        if not self._cover_data:
+            return
+        self.clear(from_user=True)
 
     def _on_save_cover(self):
         if not self._cover_data:

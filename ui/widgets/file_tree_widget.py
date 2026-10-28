@@ -68,8 +68,10 @@ class FileTreeWidget(QTreeWidget):
         """Carga el árbol mostrando cada favorito como raíz."""
         self.clear()
         if not bookmarks:
+            self._add_empty_placeholder()
             return
 
+        valid = 0
         for bookmark in bookmarks:
             path = (
                 bookmark.get("path", bookmark)
@@ -83,6 +85,7 @@ class FileTreeWidget(QTreeWidget):
             if not os.path.isdir(path):
                 continue
 
+            valid += 1
             root_name = os.path.basename(path)
             if not root_name:
                 root_name = path
@@ -97,6 +100,19 @@ class FileTreeWidget(QTreeWidget):
             placeholder.setData(0, Qt.ItemDataRole.UserRole, None)
 
             self.addTopLevelItem(root_item)
+
+        if valid == 0:
+            self._add_empty_placeholder()
+
+    def _add_empty_placeholder(self):
+        """Muestra un aviso en vez de dejar el panel vacío (parecía roto)."""
+        hint = QTreeWidgetItem(
+            self, ["Sense favorits — afegeix amb +⭐ o clic dret"]
+        )
+        hint.setData(0, Qt.ItemDataRole.UserRole, None)
+        hint.setFlags(hint.flags() & ~Qt.ItemFlag.ItemIsSelectable)
+        hint.setDisabled(True)
+        self.addTopLevelItem(hint)
 
     def _add_child_items(self, parent_item, parent_path):
         """Añade elementos hijos recursivamente."""

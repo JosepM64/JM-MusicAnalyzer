@@ -1,4 +1,5 @@
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -193,6 +194,58 @@ class AudioHardwareService:
                             "name": dev.get("name"),
                             "backend": "sounddevice",
                         }
+
+                # Fallback per overlap de tokens (descripció Qt guardada abans
+                # del reinici: "Altavoces (FiiO K3)" vs "Altavoces (FiiO K3 USB...)")
+                generic = {
+                    "audio",
+                    "usb",
+                    "altavoces",
+                    "altaveus",
+                    "speakers",
+                    "auriculares",
+                    "auriculars",
+                    "headphones",
+                    "dispositivo",
+                    "dispositiu",
+                    "device",
+                    "predeterminado",
+                    "predeterminat",
+                    "sistema",
+                    "system",
+                    "sortida",
+                    "salida",
+                    "output",
+                }
+
+                def _tokens(name):
+                    return {
+                        t
+                        for t in re.split(r"[^a-z0-9]+", name.lower())
+                        if len(t) > 2 and t not in generic
+                    }
+
+                target_tokens = _tokens(target_name)
+                if target_tokens:
+                    best = None
+                    best_score = 0
+                    for i, dev in enumerate(all_devices):
+                        dev_tokens = _tokens(dev.get("name", ""))
+                        if target_tokens <= dev_tokens:
+                            score = len(target_tokens)
+                            if score > best_score:
+                                best = {
+                                    "index": i,
+                                    "name": dev.get("name"),
+                                    "backend": "sounddevice",
+                                }
+                                best_score = score
+                    if best:
+                        logger.info(
+                            f"find_device_by_id: match per tokens '{best['name']}' "
+                            f"amb índex {best['index']}"
+                        )
+                        return best
             except Exception as e:
                 logger.error(f"Error buscando dispositivo por nombre: {e}")
 
